@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="css/admin.css" />
+  <style>
+    
+  </style>
+</head>
+<body>
+  <h1 style="text-align: center;">Trang Quản Trị</h1>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn" onclick="showTab('list-tab')">📋 Danh sách</button>
+    <button class="tab-btn" onclick="showTab('add-tab')">➕ Thêm mới</button>
+    <button class="tab-btn" onclick="showTab('edit-tab')">✏️ Chỉnh sửa</button>
+  </div>
+
+  <!-- Tab: Danh sách -->
+  <section id="list-tab" class="tab-content active">
+    <h2>Danh sách địa điểm</h2>
+    <div style="text-align: center; margin-bottom: 10px;">
+      <input 
+        type="text" 
+        id="search-input" 
+        placeholder="Tìm kiếm tên địa điểm..." 
+        style="padding: 8px; width: 100%; max-width: 300px;" 
+      />
+    </div>
+    <table id="places-table">
+      <thead>
+        <tr>  
+          <th>Tên</th>
+          <th>Loại</th>
+          <th>Mô tả</th>
+          <th>Vĩ độ</th>
+          <th>Kinh độ</th>
+          <th>Địa chỉ</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <nav aria-label="Page navigation" class="pagination-container">
+      <ul class="pagination justify-content-center" id="pagination">
+        <!-- Nút phân trang sẽ được tạo bằng JS -->
+      </ul>
+    </nav>
+  </section>
+
+  <!-- Tab: Thêm mới -->
+  <section id="add-tab" class="tab-content">
+    <h2>Thêm mới địa điểm</h2>
+    <form id="add-form">
+      <div class="form-row">
+        <input type="text" id="name" placeholder="Tên địa điểm" required />
+        <input type="text" id="category" placeholder="Loại địa điểm" />
+      </div>
+      <div class="form-row">
+        <input type="number" step="any" id="latitude" placeholder="Vĩ độ" required />
+        <input type="number" step="any" id="longitude" placeholder="Kinh độ" required />
+      </div>
+      <div class="form-row">
+        <input type="text" id="image_url" placeholder="URL hình ảnh" />
+        <input type="text" id="location" placeholder="Địa chỉ chi tiết" />
+      </div>
+      <textarea id="description" placeholder="Mô tả" rows="4"></textarea>
+      <button type="submit">Thêm</button>
+      <p id="add-success-msg" style="color: green; display: none;">✅ Đã thêm địa điểm thành công!</p>
+    </form>
+  </section>
+
+  <!-- Tab: Chỉnh sửa -->
+  <section id="edit-tab" class="tab-content">
+    <h2>Chỉnh sửa địa điểm</h2>
+    <form id="edit-form">
+      <input type="hidden" id="edit-id" />
+      <div class="form-row">
+        <input type="text" id="edit-name" placeholder="Tên địa điểm" required />
+        <input type="text" id="edit-category" placeholder="Loại địa điểm" />
+      </div>
+      <div class="form-row">
+        <input type="number" step="any" id="edit-latitude" placeholder="Vĩ độ" required />
+        <input type="number" step="any" id="edit-longitude" placeholder="Kinh độ" required />
+      </div>
+      <div class="form-row">
+        <input type="text" id="edit-image_url" placeholder="URL hình ảnh" />
+        <input type="text" id="edit-location" placeholder="Địa chỉ chi tiết" />
+      </div>
+      <textarea id="edit-description" placeholder="Mô tả" rows="4"></textarea>
+      <button type="submit">Lưu</button>
+      <button type="button" onclick="cancelEdit()">Hủy sửa</button>
+      <p id="edit-success-msg" style="display: none; color: green;">✅ Đã cập nhật thành công!</p>
+    </form>
+  </section>
+
+  <script src="js/admin.js"></script>
+  <script>
+    function showTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.getElementById(tabId).classList.add('active');
+    }
+  </script>
+</body>
+</html>
