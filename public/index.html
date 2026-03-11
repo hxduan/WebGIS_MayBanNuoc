@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGIS Du Lịch Hà Nội</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        nav {
+            background-color: #ffffff;
+            padding: 20px;
+            width: 250px;
+            border-right: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        select,
+        input[type="text"],
+        button {
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+        }
+
+        select:focus,
+        input[type="text"]:focus,
+        button:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #map-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #map {
+            height: 90vh;
+            width: 90%;
+            max-width: 1000px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+        }
+
+        .leaflet-popup-content button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .leaflet-popup-content button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <h1>Khám phá Hà Nội</h1>
+        <select id="filter">
+            <option value="all">Tất cả</option>
+            <option value="Di tích lịch sử">Di tích lịch sử</option>
+            <option value="Tâm linh">Tâm linh</option>
+            <option value="Bảo tàng">Bảo tàng</option>
+            <option value="Giải trí">Giải trí</option>
+        </select>
+        <input type="text" id="search" placeholder="Tìm địa điểm..." style="width: 230px;">
+        <button id="locate">Xác định vị trí của bạn</button>
+    </nav>
+
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+
+    <script src="js/index.js"></script>
+</body>
+
+</html>
