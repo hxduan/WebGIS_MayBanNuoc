@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebGIS - Máy bán nước</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.css"
+    />
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.min.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+
+  <body>
+    <button id="toggleSidebarBtn" onclick="toggleLeftSidebar()">⬅</button>
+    <button id="toggleRightSidebarBtn" onclick="toggleRightSidebar()">➡</button>
+
+    <!-- HEADER -->
+    <div class="header">
+      <!-- SEARCH -->
+      <input
+        id="searchInput"
+        class="header-search"
+        placeholder="Tìm cây bán nước..."
+      />
+
+      <div class="dropdown">
+        <button>🔥 Heatmap</button>
+
+        <div class="dropdown-content">
+          <div onclick="toggleHeatMap('day')">📅 Hôm nay</div>
+          <div onclick="toggleHeatMap('month')">📅 Tháng</div>
+          <div onclick="toggleHeatMap('year')">📆 Năm</div>
+        </div>
+      </div>
+
+      <div class="dropdown">
+        <button>Phân loại</button>
+        <div class="dropdown-content">
+          <div id="categoryFilter" style="padding: 10px">
+            <label><input type="checkbox" value="cafe" checked /> Cafe</label
+            ><br />
+            <label
+              ><input type="checkbox" value="trà sữa" checked /> Trà sữa</label
+            ><br />
+            <label
+              ><input type="checkbox" value="nước ép" checked /> Nước ép</label
+            ><br />
+            <label
+              ><input type="checkbox" value="giải khát" checked /> Giải
+              khát</label
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="dropdown">
+        <button>Lọc Quận</button>
+        <div class="dropdown-content">
+          <!-- NÚT MỚI -->
+          <div style="padding: 8px; border-bottom: 1px solid #eee">
+            <button onclick="checkAllDistrict()" style="width: 100%">
+              ✅ Tích tất cả
+            </button>
+
+            <button
+              onclick="uncheckAllDistrict()"
+              style="width: 100%; margin-top: 5px"
+            >
+              ❌ Bỏ tích tất cả
+            </button>
+          </div>
+          <div id="districtFilter" style="padding: 10px"></div>
+          <button onclick="toggleDistrictLayer()" class="btn-toggle-district">
+            🗺️ Bật/Tắt phân vùng
+          </button>
+        </div>
+      </div>
+
+      <div class="dropdown">
+        <button>🔥 Máy bán chạy</button>
+        <div class="dropdown-content">
+          <div onclick="filterHot('week')">7 ngày</div>
+          <div onclick="filterHot('month')">30 ngày</div>
+          <div onclick="filterHot('year')">1 năm</div>
+        </div>
+      </div>
+
+      <button onclick="alert('Chức năng đăng nhập')">Đăng nhập</button>
+    </div>
+
+    <!-- LEFT SIDEBAR -->
+    <div id="leftSidebar" class="left-sidebar">
+      <div class="left-header">
+        <button onclick="addMachine()">➕ Thêm máy</button>
+      </div>
+      <div id="machineList" class="left-list"></div>
+    </div>
+
+    <!-- MAP -->
+    <div id="map"></div>
+
+    <!-- COMPARE -->
+    <div id="compareBox" class="compare-box hidden">
+      <h3>⚖️ So sánh máy</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Tiêu chí</th>
+            <th id="c1Name"></th>
+            <th id="c2Name"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>📊 Doanh thu</td>
+            <td id="c1Rating"></td>
+            <td id="c2Rating"></td>
+          </tr>
+          <tr>
+            <td>📍 Khoảng cách</td>
+            <td id="c1Distance"></td>
+            <td id="c2Distance"></td>
+          </tr>
+          <tr>
+            <td>🥤 Sản phẩm</td>
+            <td id="c1Price"></td>
+            <td id="c2Price"></td>
+          </tr>
+          <tr>
+            <td>⚙️ Trạng thái</td>
+            <td id="c1Open"></td>
+            <td id="c2Open"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <button onclick="clearCompare()">Đóng</button>
+    </div>
+
+    <!-- SIDEBAR RIGHT -->
+    <div class="sidebar">
+      <!-- SWITCH TABS -->
+      <div class="sidebar-tabs">
+        <button onclick="switchSidebar('overview')">Tổng quan</button>
+        <button onclick="switchSidebar('nav')">Số lượng trong máy</button>
+        <button onclick="switchSidebar('detail')">Thông tin chi tiết</button>
+        <!-- 📌📍 📊-->
+      </div>
+
+      <!-- OVERVIEW PANEL -->
+      <div id="sidebar-overview" class="sidebar-panel active">
+        <p id="overviewDistance"></p>
+        <h3>Tổng quan máy</h3>
+
+        <div class="overview-grid">
+          <div class="card">
+            <p>Doanh thu hôm nay</p>
+            <h2 id="ovToday">0</h2>
+          </div>
+
+          <div class="card">
+            <p>Doanh thu tháng</p>
+            <h2 id="ovMonth">0</h2>
+          </div>
+
+          <div class="card">
+            <p>Tổng sản phẩm bán</p>
+            <h2 id="ovTotal">0</h2>
+          </div>
+
+          <div class="card">
+            <p>Bán chạy nhất</p>
+            <h2 id="ovTop">-</h2>
+          </div>
+        </div>
+
+        <h4>💰 Doanh thu toàn hệ thống</h4>
+
+        <div class="overview-grid">
+          <div class="card">
+            <p>Hôm nay</p>
+            <h2 id="sysToday">0</h2>
+          </div>
+
+          <div class="card">
+            <p>Tháng này</p>
+            <h2 id="sysMonth">0</h2>
+          </div>
+
+          <div class="card">
+            <p>Năm nay</p>
+            <h2 id="sysYear">0</h2>
+          </div>
+        </div>
+
+        <div class="system-stats">
+          <div class="stat-box">
+            <p>Tổng máy</p>
+            <h3 id="totalMachines">0</h3>
+          </div>
+
+          <div class="stat-box">
+            <p>Hoạt động</p>
+            <h3 id="activeMachines">0</h3>
+          </div>
+
+          <div class="stat-box">
+            <p>Máy lỗi</p>
+            <h3 id="errorMachines">0</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- STOCK PANEL -->
+      <div id="sidebar-nav" class="sidebar-panel nav-ui">
+        <h2 id="nav-title">Máy: ---</h2>
+
+        <!-- STOCK -->
+        <div class="nav-section">
+          <h3>📦 Tồn kho</h3>
+          <div id="nav-stock-list"></div>
+        </div>
+
+        <!-- REPORT -->
+
+        <!-- MAX STOCK -->
+      </div>
+
+      <!-- DETAIL PANEL -->
+      <div id="sidebar-detail" class="sidebar-panel">
+        <div class="overview-container">
+          <img id="overviewImg" class="overview-img" />
+
+          <div class="overview-info">
+            <h2>
+              <span id="machineName"></span>
+              <button onclick="editMachine()">✏️</button>
+            </h2>
+            <input type="file" id="machineImageInput" />
+            <button onclick="changeImage()">📷 Đổi ảnh</button>
+            <p id="machineId"></p>
+            <p id="machineStatus"></p>
+            <p id="machineType"></p>
+            <p id="machineRevenue"></p>
+            <p id="machineArea"></p>
+          </div>
+        </div>
+
+        <!-- PRODUCT / CHART / HISTORY TABS -->
+        <div class="tabs">
+          <button onclick="openTab('products')">Sản phẩm</button>
+          <button onclick="openTab('report')">Báo cáo</button>
+          <button onclick="openTab('chart')">Biểu đồ</button>
+          <button onclick="openTab('history')">Lịch sử</button>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="machine-actions">
+          <button onclick="refillMachine()">📦 Tiếp hàng</button>
+          <button onclick="reportError()">⚠️ Báo lỗi</button>
+          <button onclick="fixMachine()">🔧 Sửa xong</button>
+        </div>
+
+        <button onclick="addProduct()" class="add-btn">➕ Thêm sản phẩm</button>
+
+        <!-- PRODUCT TAB -->
+        <div id="products" class="tab-content active">
+          <div id="productList"></div>
+        </div>
+
+        <!-- CHART TAB -->
+        <div id="chart" class="tab-content">
+          <!-- SCROLL -->
+          <div class="chart-scroll">
+            <!-- FILTER -->
+            <div style="margin-bottom: 10px">
+              <div style="margin-bottom: 10px">
+                <h3>Doanh thu</h3>
+                <button onclick="loadCompare('day')">Ngày</button>
+                <button onclick="loadCompare('month')">Tháng</button>
+                <button onclick="loadCompare('year')">Năm</button>
+                <canvas id="compareChart"></canvas>
+              </div>
+
+              <!-- BIỂU ĐỒ -->
+
+              <h3>Sản phẩm bán chạy</h3>
+              <canvas id="topProductChart"></canvas>
+              <canvas id="revenueChart"></canvas>
+              <canvas id="productChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- HISTORY TAB -->
+        <div id="history" class="tab-content">
+          <!-- SCROLL Ở ĐÂY -->
+          <div class="history-scroll">
+            <h4>Lần tiếp hàng gần nhất:</h4>
+            <p id="latestRefill">—</p>
+
+            <h4>Lịch sử tiếp hàng:</h4>
+            <div id="refillHistory"></div>
+          </div>
+        </div>
+        <!-- báo cáo -->
+        <div id="report" class="tab-content">
+          <!-- VÙNG SCROLL -->
+          <div class="report-scroll">
+            <h3>Báo cáo bán hàng hôm nay</h3>
+
+            <div id="reportList"></div>
+          </div>
+
+          <!-- NÚT -->
+          <button onclick="submitReport()" class="report-btn">
+            Hoàn tất báo cáo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLOAT BUTTONS -->
+    <div class="locate-btn" onclick="getLocation()">📍</div>
+    <!-- <div class="route-off-btn" onclick="closeRoute()">🧭</div>
+<div class="nearby-off-btn" onclick="resetNearby()">❌</div> -->
+    <!-- 🧭 bật chỉ đường -->
+    <div class="route-btn" onclick="getRoute()">🧭</div>
+
+    <!-- ❌ tắt chỉ đường -->
+    <div class="route-close-btn" onclick="closeRoute()">❌</div>
+
+    <div id="addMachinePopup" class="add-machine-popup hidden">
+      <h3>➕ Thêm máy mới</h3>
+
+      <input id="newName" placeholder="Tên máy" />
+
+      <select id="newType">
+        <option value="Cafe">☕ Cafe</option>
+        <option value="Trà sữa">🧋 Trà sữa</option>
+        <option value="Nước ép">🍊 Nước ép</option>
+        <option value="Giải khát">🥤 Giải khát</option>
+      </select>
+
+      <select id="newStatus">
+        <option value="Hoạt động">🟢 Hoạt động</option>
+        <option value="Lỗi">🔴 Lỗi</option>
+        <option value="Offline">⚪ Offline</option>
+      </select>
+
+      <div class="popup-actions">
+        <button onclick="saveNewMachine()">Lưu</button>
+        <button onclick="cancelAddMachine()">Hủy</button>
+      </div>
+    </div>
+    <script src="js/app.js"></script>
+  </body>
+</html>
