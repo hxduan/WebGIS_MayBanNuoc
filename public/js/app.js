@@ -1,0 +1,1825 @@
+//===============================CONFIG & GLOBAL STATE=====================
+// map init
+const map = L.map("map").setView([21.0285, 105.8542], 13);
+
+// constants
+const innerDistricts = [
+  "Ba Đình",
+  "Hoàn Kiếm",
+  "Hai Bà Trưng",
+  "Đống Đa",
+  "Cầu Giấy",
+  "Thanh Xuân",
+  "Hoàng Mai",
+  "Long Biên",
+  "Hà Đông",
+  "Nam Từ Liêm",
+  "Bắc Từ Liêm",
+  "Tây Hồ",
+];
+// global state
+let markers = [];
+let machinesData = [];
+let currentMachine = null;
+let routingControl = null;
+let userMarker = null;
+let heatLayer = null;
+let nearbyCircle = null;
+let heatOn = false;
+let compareList = [];
+let revenueChart = null;
+let productChart = null;
+let compareChart = null;
+let currentMode = "month";
+let topProductChart = null;
+let addingMachine = false;
+let newLatLng = null;
+let tempMarker = null;
+let movingMachine = null;
+let districtLayer;
+let districtVisible = true;
+let allDistricts = [];
+//====================================MAP==============================================
+
+const iconTraSua = L.icon({
+  iconUrl: "/icons/trasua.png",
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+});
+
+const iconNuocNgot = L.icon({
+  iconUrl: "/icons/nuocep.png", // ✅ đúng
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+});
+
+const iconCafe = L.icon({
+  iconUrl: "/icons/cafe.png",
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+});
+
+const iconGiaiKhat = L.icon({
+  iconUrl: "/icons/giaikhat.png",
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+});
+// tile layer
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+// helper
+function getIcon(type) {
+  if (!type) return iconNuocNgot;
+
+  const t = type.toLowerCase().trim();
+
+  // 🧋 Trà sữa
+  if (t.includes("trà") || t.includes("sữa")) {
+    return iconTraSua;
+  }
+
+  // 🥤 Giải khát
+  if (t.includes("giải khát")) {
+    return iconGiaiKhat;
+  }
+
+  // 🧃 Nước ép (FIX CHÍNH)
+  if (t.includes("nước ép") || t.includes("nuoc ep")) {
+    return iconNuocNgot;
+  }
+
+  // ☕ Cafe
+  if (t.includes("cafe") || t.includes("cà phê")) {
+    return iconCafe;
+  }
+
+  // 💪 Sức khỏe
+  if (t.includes("sức khỏe") || t.includes("healthy")) {
+    return iconSucKhoe;
+  }
+
+  return iconNuocNgot;
+}
+function createStockIcon(type, lowStock) {
+  let iconUrl = "/icons/cafe.png";
+
+  if (type === "Trà sữa") iconUrl = "/icons/trasua.png";
+  if (type === "Nước ép") iconUrl = "/icons/nuocep.png";
+  if (type === "Giải khát") iconUrl = "/icons/giaikhat.png";
+
+  return L.divIcon({
+    html: `
+      <div class="machine-marker">
+        <img src="${iconUrl}">
+        ${lowStock ? '<span class="stock-dot"></span>' : ""}
+      </div>
+    `,
+    className: "",
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+  });
+}
+//==================================RENDER UI==========================================
+function renderMarkers(data) {
+  // clear marker cũ
+  markers.forEach((m) => map.removeLayer(m));
+  markers = [];
+
+  data.forEach((p) => {
+    // ✅ tránh crash
+    if (!p || p.lat == null || p.lng == null) {
+      console.warn("Machine lỗi:", p);
+      return;
+    }
+
+    // ================= MAIN MARKER =================
+    const marker = L.marker([p.lat, p.lng], {
+      icon: getIcon(p.type),
+    }).addTo(map);
+
+    // 👇 QUAN TRỌNG: lưu data để filter
+    marker.data = p;
+
+    marker.on("click", () => {
+      currentMachine = p;
+
+      showPlace(p);
+      switchSidebar("detail");
+
+      document
+        .querySelectorAll(".machine-item")
+        .forEach((item) => item.classList.remove("active"));
+
+      const target = document.querySelector(`.machine-item[data-id="${p.id}"]`);
+
+      if (target) {
+        target.classList.add("active");
+
+        target.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+
+      map.flyTo([p.lat, p.lng], 17, {
+        duration: 0.8,
+      });
+    });
+
+    markers.push(marker);
+
+    // ================= LABEL =================
+    const labelIcon = L.divIcon({
+      className: "machine-label",
+      html: `<div class="label-text">${p.name}</div>`,
+      iconSize: [100, 20],
+      iconAnchor: [50, 40],
+    });
+
+    const labelMarker = L.marker([p.lat, p.lng], {
+      icon: labelIcon,
+      interactive: false,
+    }).addTo(map);
+
+    // ❗ KHÔNG gắn data cho label
+    markers.push(labelMarker);
+
+    // ================= ERROR ICON =================
+    if (p.status === "Lỗi") {
+      const iconDiv = L.divIcon({
+        html: `<div style="
+                    position:absolute;
+                    top:-10px;
+                    right:-10px;
+                    background:red;
+                    color:white;
+                    width:20px;
+                    height:20px;
+                    border-radius:50%;
+                    font-size:14px;
+                    display:flex;
+                    justify-content:center;
+                    align-items:center;
+                ">!</div>`,
+      });
+
+      const errorMarker = L.marker([p.lat, p.lng], {
+        icon: iconDiv,
+        interactive: false,
+      }).addTo(map);
+
+      // ❗ KHÔNG gắn data
+      markers.push(errorMarker);
+    }
+    // ================= STOCK ICON =================
+    if (p.total_stock <= 25) {
+      const stockIcon = L.divIcon({
+        html: `<div style="
+      position:absolute;
+      bottom:-10px;
+      left:-10px;
+      background:orange;
+      color:white;
+      width:18px;
+      height:18px;
+      border-radius:50%;
+      font-size:10px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+    ">•</div>`,
+      });
+
+      const stockMarker = L.marker([p.lat, p.lng], {
+        icon: stockIcon,
+        interactive: false,
+      }).addTo(map);
+
+      markers.push(stockMarker);
+    }
+  });
+}
+function renderMachineList(data) {
+  const box = document.getElementById("machineList");
+
+  if (!data || data.length === 0) {
+    box.innerHTML = "<p style='padding:10px'>❌ Không tìm thấy máy</p>";
+    return;
+  }
+
+  box.innerHTML = data
+    .map(
+      (m) => `
+        <div class="machine-item ${currentMachine && currentMachine.id === m.id ? "active" : ""}" 
+     data-id="${m.id}"
+     onclick="focusMachine(${m.id}, this)">
+            
+            <div class="machine-row">
+                
+                <div class="machine-info">
+                    <div class="machine-name">
+                        ${m.status === "Lỗi" ? "<span style='color:red'>●</span> " : ""}
+                        ${highlight(m.name, document.getElementById("searchInput").value)}
+                    </div>
+                    
+                    <div class="machine-type">Loại: ${m.type}</div>
+                </div>
+
+                <div style="display:flex;gap:6px">
+
+    <!-- 📍 MOVE -->
+    <div class="machine-move"
+         onclick="startMoveMachine(${m.id}, event)">
+         Di chuyển
+    </div>
+
+    <!-- ❌ DELETE -->
+    <div class="machine-delete"
+         onclick="deleteMachine(${m.id}, event)">
+         ✖
+    </div>
+
+</div>
+
+            </div>
+
+        </div>
+    `,
+    )
+    .join("");
+}
+function renderOverview(data) {
+  const p = data.machine;
+
+  document.getElementById("overviewImg").src =
+    p.image || "https://picsum.photos/600/300";
+
+  document.getElementById("machineName").innerHTML =
+    `${p.status === "Lỗi" ? "<span style='color:red'>●</span> " : ""}${p.name}`;
+
+  document.getElementById("machineStatus").innerText =
+    p.status === "Lỗi" ? "Trạng thái: 🔴 Lỗi" : "Trạng thái: 🟢 Hoạt động";
+
+  document.getElementById("machineType").innerText =
+    "Loại: " + p.type + " | Khu vực: " + p.area_type;
+
+  // sản phẩm
+  document.getElementById("productList").innerHTML = data.products
+    .map(
+      (p) => `
+    <div class="product-card">
+
+        <img class="product-img"
+             src="${p.image || "https://via.placeholder.com/50"}">
+
+        <div class="product-info">
+            <div class="product-name">${p.name}</div>
+            <div class="product-price">${p.price}đ</div>
+        </div>
+
+        <!-- 🔥 upload riêng từng sản phẩm -->
+        <input type="file" id="img-${p.id}">
+        <button onclick="uploadProductImage(${p.id})">📷 Tải ảnh</button>
+
+        <div class="product-actions">
+            <span onclick="editProduct(${p.id})">✏️</span>
+            <span onclick="deleteProduct(${p.id})">❌</span>
+        </div>
+
+    </div>
+`,
+    )
+    .join("");
+
+  if (userMarker) {
+    const distance = map.distance(
+      userMarker.getLatLng(),
+      L.latLng(p.lat, p.lng),
+    );
+
+    document.getElementById("overviewDistance").innerText =
+      "📍 Cách bạn: " + (distance / 1000).toFixed(2) + " km";
+  }
+  loadReport(data.products);
+}
+function renderStock(products) {
+  const html = products
+    .map((p) => {
+      let color = "green";
+
+      if (p.stock < 3) color = "red";
+      else if (p.stock < 10) color = "orange";
+
+      return `
+        <div class="stock-card">
+          <div class="stock-header">
+            <span>${p.name}</span>
+            <span>${p.stock}/${p.max_slot}</span>
+          </div>
+
+          <div class="stock-bar">
+            <div class="stock-fill" 
+                 style="width:${p.percent}%; background:${color}">
+            </div>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
+  document.getElementById("stock-list").innerHTML = html;
+}
+function renderTopProductChart(data) {
+  const ctx = document.getElementById("topProductChart").getContext("2d");
+
+  if (topProductChart) topProductChart.destroy();
+
+  const labels = data.map((d) => d.name);
+  const values = data.map((d) => d.total || 0);
+
+  topProductChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Số lượng bán",
+          data: values,
+        },
+      ],
+    },
+    options: {
+      indexAxis: "y", // 🔥 thanh ngang
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ctx.raw + " sản phẩm",
+          },
+        },
+      },
+    },
+  });
+}
+function renderRevenueChart(data) {
+  const ctx = document.getElementById("revenueChart").getContext("2d");
+
+  if (revenueChart) revenueChart.destroy();
+
+  revenueChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: data.map((d) => d.date),
+      datasets: [
+        {
+          label: "Doanh thu",
+          data: data.map((d) => d.revenue),
+        },
+      ],
+    },
+  });
+}
+function renderCompareChart(data) {
+  const ctx = document.getElementById("compareChart").getContext("2d");
+
+  if (compareChart) compareChart.destroy();
+
+  // 🔥 LẤY LABEL + SORT SỐ
+  let labels = [
+    ...new Set([
+      ...data.current.map((d) => d.label),
+      ...data.previous.map((d) => d.label),
+    ]),
+  ];
+
+  // 🔥 SẮP XẾP ĐÚNG THỨ TỰ SỐ
+  labels = labels.sort((a, b) => parseInt(a) - parseInt(b));
+
+  // 🔥 MAP DATA
+  const currentData = labels.map((l) => {
+    const f = data.current.find((d) => d.label === l);
+    return f ? f.revenue : 0;
+  });
+
+  const prevData = labels.map((l) => {
+    const f = data.previous.find((d) => d.label === l);
+    return f ? f.revenue : 0;
+  });
+
+  // 🔥 FORMAT LABEL CHO DỄ HIỂU
+  const formattedLabels = labels.map((l) => {
+    if (currentMode === "day") return "Ngày " + parseInt(l);
+    if (currentMode === "month") return "Tháng " + parseInt(l);
+    if (currentMode === "year") return l;
+    return l;
+  });
+
+  compareChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: formattedLabels,
+      datasets: [
+        {
+          label: "Hiện tại",
+          data: currentData,
+        },
+        {
+          label: "Kỳ trước",
+          data: prevData,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function (ctx) {
+              return ctx.dataset.label + ": " + ctx.raw + " đ";
+            },
+          },
+        },
+      },
+    },
+  });
+}
+function renderProductChart(data) {
+  const ctx = document.getElementById("productChart").getContext("2d");
+
+  if (productChart) productChart.destroy();
+
+  productChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: data.map((d) => d.name),
+      datasets: [
+        {
+          label: "Số lượng bán",
+          data: data.map((d) => d.total),
+        },
+      ],
+    },
+  });
+}
+function renderHotList(data) {
+  const box = document.getElementById("machineList");
+
+  if (!data || data.length === 0) {
+    box.innerHTML = "<p style='padding:10px'>Không có dữ liệu</p>";
+    return;
+  }
+
+  box.innerHTML = data
+    .map(
+      (m, index) => `
+        <div class="machine-item" onclick="focusMachine(${m.id})">
+            
+            <div class="machine-row">
+
+                <div class="machine-info">
+                    
+                    <div class="machine-name">
+                        🔥 #${index + 1} - ${m.name}
+                    </div>
+
+                    <div class="machine-type">
+                        📦 Đã bán: ${m.total_sold || 0}
+                    </div>
+
+                </div>
+
+                <div class="machine-delete"
+                     onclick="deleteMachine(${m.id}, event)">
+                     ✖
+                </div>
+
+            </div>
+
+        </div>
+    `,
+    )
+    .join("");
+}
+function renderNavStock(products) {
+  const html = products
+    .map((p) => {
+      const percent = Math.round((p.stock / p.max_slot) * 100);
+
+      let color = "#4a6cf7";
+      if (percent < 30) color = "red";
+      else if (percent < 60) color = "orange";
+
+      return `
+      <div class="stock-item">
+        <div>${p.name} (${p.stock}/${p.max_slot})</div>
+        <div class="stock-bar">
+          <div class="stock-fill" style="width:${percent}%; background:${color}"></div>
+        </div>
+      </div>
+    `;
+    })
+    .join("");
+
+  document.getElementById("nav-stock-list").innerHTML = html;
+}
+function loadReport(products) {
+  const box = document.getElementById("reportList");
+
+  box.innerHTML = products
+    .map(
+      (p) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0;padding:8px;background:#f5f5f5;border-radius:8px">
+            
+            <div>
+                <strong>${p.name}</strong><br>
+                <span style="font-size:12px;color:#666">${p.price}đ</span>
+            </div>
+
+            <input type="number" min="0" value="0"
+                id="report-${p.id}"
+                style="width:80px;padding:5px;border-radius:6px;border:1px solid #ccc">
+        </div>
+    `,
+    )
+    .join("");
+}
+function renderStatus(status) {
+  if (status === "Hoạt động") {
+    return `<span style="color:green">🟢 Hoạt động</span>`;
+  }
+
+  if (status === "Lỗi") {
+    return `<span style="color:red">🔴 Lỗi</span>`;
+  }
+
+  return `<span style="color:gray">⚪ Offline</span>`;
+}
+//==================================FEATURE============================================
+// Machines
+async function loadMachines() {
+  let machines = await fetch("/api/machines").then((r) => r.json());
+
+  machines = await assignDistrictToMachines(machines);
+
+  machinesData = machines; // 🔥 QUAN TRỌNG
+
+  renderMarkers(machines);
+  renderMachineList(machines);
+}
+function focusMachine(id, el) {
+  const m = machinesData.find((x) => x.id === id);
+  if (!m) return;
+
+  currentMachine = m;
+
+  map.setView([m.lat, m.lng], 17);
+
+  showPlace(m);
+  switchSidebar("detail");
+
+  // highlight
+  document
+    .querySelectorAll(".machine-item")
+    .forEach((item) => item.classList.remove("active"));
+
+  if (el) {
+    el.classList.add("active");
+  }
+
+  // 🔥 scroll tới item
+  scrollToMachine(id);
+}
+function addMachine() {
+  addingMachine = true;
+  alert("Click lên bản đồ để chọn vị trí đặt máy");
+}
+async function saveNewMachine() {
+  const name = document.getElementById("newName").value;
+  const type = document.getElementById("newType").value;
+  const status = document.getElementById("newStatus").value;
+
+  if (!name || !newLatLng) {
+    alert("Thiếu thông tin!");
+    return;
+  }
+
+  await fetch("/api/machines", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name,
+      type,
+      status,
+      lat: newLatLng.lat,
+      lng: newLatLng.lng,
+    }),
+  });
+
+  // reset
+  cancelAddMachine();
+
+  // reload map
+  loadPlaces();
+}
+async function deleteMachine(id, e) {
+  e.stopPropagation(); // ❗ tránh click vào item
+
+  if (!confirm("Xóa máy này?")) return;
+
+  await fetch(`/api/machines/${id}`, {
+    method: "DELETE",
+  });
+
+  loadMachines();
+}
+function startMoveMachine(id, e) {
+  e.stopPropagation();
+
+  movingMachine = machinesData.find((m) => m.id === id);
+
+  alert("👉 Click lên bản đồ để chọn vị trí mới");
+}
+
+function cancelAddMachine() {
+  document.getElementById("addMachinePopup").classList.add("hidden");
+
+  if (tempMarker) {
+    map.removeLayer(tempMarker);
+    tempMarker = null;
+  }
+
+  newLatLng = null;
+}
+function scrollToMachine(id) {
+  const el = document.querySelector(`.machine-item[data-id="${id}"]`);
+
+  if (el) {
+    el.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }
+}
+async function editMachine() {
+  const newName = prompt("Tên mới:", currentMachine.name);
+  if (!newName) return;
+
+  await fetch(`/api/machines/${currentMachine.id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: newName,
+      type: currentMachine.type,
+      status: currentMachine.status,
+      image: currentMachine.image,
+    }),
+  });
+
+  loadPlaces();
+  showPlace({ ...currentMachine, name: newName });
+}
+async function fixMachine() {
+  await fetch(`/api/machines/${currentMachine.id}/fix`, { method: "POST" });
+
+  loadPlaces();
+  showPlace(currentMachine);
+}
+function updateTotalMaxStock() {
+  const inputs = document.querySelectorAll("#nav-maxstock input");
+
+  let total = 0;
+
+  inputs.forEach((i) => {
+    total += parseInt(i.value) || 0;
+  });
+
+  document.getElementById("maxstock-total").innerText = `Tổng: ${total} / 250`;
+}
+async function refillMachine() {
+  await fetch(`/api/refill/${currentMachine.id}`, { method: "POST" });
+
+  loadPlaces(); // reload marker + sidebar trái
+  showPlace(currentMachine); // reload sidebar phải
+}
+async function reportError() {
+  await fetch(`/api/machines/${currentMachine.id}/error`, { method: "POST" });
+
+  loadPlaces();
+  showPlace(currentMachine);
+}
+//product
+async function uploadProductImage(id) {
+  try {
+    const input = document.getElementById(`img-${id}`);
+
+    if (!input) {
+      alert("Không tìm thấy input file");
+      return;
+    }
+
+    const file = input.files[0];
+
+    if (!file) {
+      alert("Chọn ảnh trước!");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("productImage", file);
+
+    const res = await fetch(`/api/products/${id}/image`, {
+      method: "POST",
+      body: formData,
+    });
+
+    // 🔥 FIX QUAN TRỌNG: tránh crash JSON
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("Upload lỗi:", text);
+      alert("Upload thất bại!");
+      return;
+    }
+
+    const data = await res.json().catch(() => null); // tránh crash
+
+    alert("Upload OK");
+
+    // 🔥 reload lại UI để thấy ảnh mới
+    showPlace(currentMachine);
+  } catch (err) {
+    console.error("❌ Upload crash:", err);
+    alert("Lỗi upload!");
+  }
+}
+async function addProduct() {
+  if (!currentMachine) {
+    alert("Chọn máy trước!");
+    return;
+  }
+
+  const name = prompt("Tên sản phẩm:");
+  const price = parseFloat(prompt("Giá:"));
+  const stock = parseInt(prompt("Số lượng:"));
+
+  await fetch(`/api/products`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      machine_id: currentMachine.id,
+      name,
+      price,
+      stock,
+    }),
+  });
+
+  showPlace(currentMachine);
+}
+async function deleteProduct(id) {
+  if (!confirm("Xóa sản phẩm?")) return;
+
+  await fetch(`/api/products/${id}`, {
+    method: "DELETE",
+  });
+
+  showPlace(currentMachine);
+}
+window.editProduct = async function (id) {
+  const name = prompt("Tên mới:");
+  const price = parseFloat(prompt("Giá mới:"));
+  const stock = parseInt(prompt("Stock:"));
+
+  await fetch(`/api/products/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, price, stock }),
+  });
+
+  showPlace(currentMachine);
+};
+//Stock
+async function loadStockCurrent() {
+  if (!currentMachine) return;
+
+  try {
+    const res = await fetch(`/api/machines/${currentMachine.id}/stock`);
+    const data = await res.json();
+
+    // 🔥 FIX ĐÚNG Ở ĐÂY
+    renderStock(data.products);
+    renderMaxStock(data.products);
+
+    // 👉 hiển thị tổng
+    document.getElementById("totalStockNote").innerText =
+      `Tổng: ${data.total.total_stock} / ${data.total.total_slot}`;
+
+    // 👉 tên máy
+    document.getElementById("navMachineName").innerText = currentMachine.name;
+  } catch (err) {}
+}
+async function updateMaxStock() {
+  const inputs = document.querySelectorAll("#nav-maxstock input");
+
+  let total = 0;
+  let products = [];
+
+  inputs.forEach((i) => {
+    const value = parseInt(i.value) || 0;
+    total += value;
+
+    products.push({
+      id: i.id.replace("max-", ""),
+      max_slot: value,
+    });
+  });
+
+  // 🚨 chặn vượt 250
+  if (total > 250) {
+    alert("Tổng max stock không được vượt quá 250!");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/products/maxstock", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ products }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error(text);
+      alert("Lỗi server!");
+      return;
+    }
+
+    alert("Cập nhật thành công!");
+
+    // 🔥 reload lại UI
+    loadNavData();
+  } catch (err) {}
+}
+
+//Sales
+async function submitReport() {
+  try {
+    if (!currentMachine) {
+      alert("Chưa chọn máy!");
+      return;
+    }
+
+    const inputs = document.querySelectorAll("#reportList input");
+
+    let reportData = [];
+
+    inputs.forEach((i) => {
+      const qty = parseInt(i.value) || 0;
+
+      if (qty > 0) {
+        reportData.push({
+          product_id: i.id.replace("report-", ""),
+          quantity: qty,
+        });
+      }
+    });
+
+    if (reportData.length === 0) {
+      alert("Chưa nhập dữ liệu!");
+      return;
+    }
+
+    // 🔥 GỌI API
+    const res = await fetch(`/api/report/${currentMachine.id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: reportData }),
+    });
+
+    // 🚨 CHECK LỖI
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("Lỗi server:", text);
+      alert("Lỗi báo cáo!");
+      return;
+    }
+
+    // 🔥 ĐỌC JSON (tránh undefined)
+    const data = await res.json();
+    console.log("Report OK:", data);
+
+    alert("Đã gửi báo cáo!");
+
+    // 🔥 reload data
+    await loadStockCurrent();
+    await loadNavData();
+    showPlace(currentMachine);
+    loadChart("7days");
+
+    // reset input
+    inputs.forEach((i) => (i.value = 0));
+  } catch (err) {
+    console.error("Lỗi submitReport:", err);
+    alert("Có lỗi xảy ra!");
+  }
+}
+//Stats
+async function loadSystemRevenue() {
+  const res = await fetch("/api/system/revenue");
+  const data = await res.json();
+
+  document.getElementById("sysToday").innerText = Number(
+    data.today || 0,
+  ).toLocaleString();
+
+  document.getElementById("sysMonth").innerText = Number(
+    data.month || 0,
+  ).toLocaleString();
+
+  document.getElementById("sysYear").innerText = Number(
+    data.year || 0,
+  ).toLocaleString();
+}
+
+async function loadTopProducts(type) {
+  if (!currentMachine) return;
+
+  const data = await fetch(
+    `/api/stats/top-products/${currentMachine.id}?type=${type}`,
+  ).then((r) => r.json());
+
+  renderTopProductChart(data);
+}
+async function filterHot(type) {
+  const data = await fetch(`/api/machines/hot?type=${type}`).then((res) =>
+    res.json(),
+  );
+
+  // 🔥 filter theo category + quận
+  const filtered = data.filter((m) => {
+    const machines = getFilteredMachines();
+    return machines.some((x) => x.id === m.id);
+  });
+
+  renderMarkers(filtered);
+  renderHotList(filtered);
+}
+async function loadDashboard() {
+  try {
+    const data = await fetch("/api/dashboard").then((r) => r.json());
+    const m = data.machines;
+
+    document.getElementById("totalMachines").innerText = m.total;
+    document.getElementById("activeMachines").innerText = m.active;
+    // Sửa lại: Giả sử API trả về các trường cụ thể hoặc tính toán đơn giản hơn
+    document.getElementById("errorMachines").innerText = m.error || 0;
+  } catch (err) {
+    console.error("❌ dashboard lỗi:", err);
+  }
+}
+async function loadOverview() {
+  if (!currentMachine) return;
+
+  try {
+    const res = await fetch(`/api/stats/overview/${currentMachine.id}`);
+    const data = await res.json();
+
+    // 🔥 ép về number
+    const today = Number(data.today) || 0;
+    const month = Number(data.month) || 0;
+    const total = Number(data.total) || 0;
+
+    document.getElementById("ovToday").innerText =
+      today.toLocaleString() + " đ";
+    document.getElementById("ovMonth").innerText =
+      month.toLocaleString() + " đ";
+    document.getElementById("ovTotal").innerText = total.toLocaleString();
+
+    document.getElementById("ovTop").innerText = data.top
+      ? data.top.name
+      : "Chưa có";
+  } catch (err) {
+    console.error("❌ lỗi overview:", err);
+  }
+}
+async function loadChart(range, month = null) {
+  if (!currentMachine) return;
+
+  let url1 = `/api/stats/revenue/${currentMachine.id}?range=${range}`;
+  let url2 = `/api/stats/products/${currentMachine.id}?range=${range}`;
+
+  if (range === "month" && month) {
+    url1 += `&month=${month}`;
+    url2 += `&month=${month}`;
+  }
+
+  const revenueData = await fetch(url1).then((r) => r.json());
+  const productData = await fetch(url2).then((r) => r.json());
+
+  renderRevenueChart(revenueData);
+  renderProductChart(productData);
+}
+async function loadCompare(type) {
+  currentMode = type;
+
+  if (!currentMachine) return;
+
+  // 🔥 load chart doanh thu
+  const data = await fetch(
+    `/api/stats/compare/${currentMachine.id}?type=${type}`,
+  ).then((r) => r.json());
+
+  renderCompareChart(data);
+
+  // 🔥 load chart sản phẩm (DÙNG CHUNG FILTER)
+  loadTopProducts(type);
+}
+async function loadHistory(machineId) {
+  const res = await fetch(`/api/logs/${machineId}`);
+  const logs = await res.json();
+
+  if (logs.length === 0) {
+    document.getElementById("latestRefill").innerText =
+      "Chưa có lần tiếp hàng nào";
+    document.getElementById("refillHistory").innerHTML = "";
+    return;
+  }
+
+  const latest = logs[0];
+  document.getElementById("latestRefill").innerText = new Date(
+    latest.created_at,
+  ).toLocaleString("vi-VN");
+
+  document.getElementById("refillHistory").innerHTML = logs
+    .map(
+      (l) => `<div>• ${new Date(l.created_at).toLocaleString("vi-VN")}</div>`,
+    )
+    .join("");
+}
+//Heatmap
+async function loadHeatData(type = "month") {
+  const res = await fetch(`/api/heatmap?type=${type}`);
+  return await res.json();
+}
+function normalizeHeatData(data) {
+  const max = Math.max(...data.map((p) => p.weight));
+
+  return data
+    .filter((p) => p.weight > 0)
+    .map((p) => [
+      p.lat,
+      p.lng,
+      p.weight / max, // ❌ bỏ pow
+    ]);
+}
+async function toggleHeatMap(type = "day") {
+  if (heatOn) {
+    map.removeLayer(heatLayer);
+    heatLayer = null;
+    heatOn = false;
+
+    const filtered = getFilteredMachines();
+    renderMarkers(filtered);
+    renderMachineList(filtered);
+    return;
+  }
+
+  const rawData = await loadHeatData(type);
+
+  const filteredMachines = getFilteredMachines();
+
+  // 🔥 CHỈ LẤY heat thuộc máy đã filter
+  const filteredHeat = rawData.filter((h) =>
+    filteredMachines.some((m) => m.lat === h.lat && m.lng === h.lng),
+  );
+
+  const heatData = normalizeHeatData(filteredHeat);
+
+  heatLayer = createHeatLayer(heatData);
+  heatLayer.addTo(map);
+
+  heatOn = true;
+
+  renderMachineList(filteredMachines);
+}
+function createHeatLayer(heatData) {
+  return L.heatLayer(heatData, {
+    radius: 35, // 🔥 tăng vùng ảnh hưởng
+    blur: 20,
+    maxZoom: 18,
+
+    max: 0.05, // 🔥 QUAN TRỌNG: giảm max để dễ lên đỏ
+
+    gradient: {
+      0.1: "#00f",
+      0.3: "#0ff",
+      0.5: "#0f0",
+      0.7: "#ff0",
+      1.0: "#f00",
+    },
+  });
+}
+//compare
+async function addToCompare() {
+  if (!currentMachine) {
+    alert("Chọn máy trước!");
+    return;
+  }
+
+  if (compareList.length >= 2) {
+    alert("Chỉ so sánh tối đa 2 máy!");
+    return;
+  }
+
+  compareList.push(currentMachine);
+
+  if (compareList.length === 2) {
+    showCompare();
+  } else {
+    alert("Đã chọn 1 máy, chọn thêm 1 cái nữa!");
+  }
+}
+async function showCompare() {
+  const [p1, p2] = compareList;
+
+  const d1 = await fetch(`/api/machine/${p1.id}`).then((r) => r.json());
+  const d2 = await fetch(`/api/machine/${p2.id}`).then((r) => r.json());
+
+  document.getElementById("c1Name").innerText = p1.name;
+  document.getElementById("c2Name").innerText = p2.name;
+
+  document.getElementById("c1Rating").innerText = d1.stats.revenue || 0;
+  document.getElementById("c2Rating").innerText = d2.stats.revenue || 0;
+
+  if (userMarker) {
+    const u = userMarker.getLatLng();
+
+    const d_1 = map.distance(u, L.latLng(p1.lat, p1.lng)) / 1000;
+    const d_2 = map.distance(u, L.latLng(p2.lat, p2.lng)) / 1000;
+
+    document.getElementById("c1Distance").innerText = d_1.toFixed(2) + " km";
+    document.getElementById("c2Distance").innerText = d_2.toFixed(2) + " km";
+  }
+
+  document.getElementById("c1Price").innerHTML = d1.products
+    .map((p) => p.name)
+    .join("<br>");
+
+  document.getElementById("c2Price").innerHTML = d2.products
+    .map((p) => p.name)
+    .join("<br>");
+
+  document.getElementById("c1Open").innerText = p1.status;
+  document.getElementById("c2Open").innerText = p2.status;
+
+  document.getElementById("compareBox").classList.remove("hidden");
+}
+function clearCompare() {
+  compareList = [];
+  document.getElementById("compareBox").classList.add("hidden");
+}
+// Filter & Search
+function getFilteredMachines() {
+  // ===== LẤY QUẬN =====
+  const checkedDistricts = Array.from(
+    document.querySelectorAll("#districtFilter input:checked"),
+  ).map((cb) => cb.value);
+
+  // ===== LẤY CATEGORY =====
+  const selectedTypes = Array.from(
+    document.querySelectorAll("#categoryFilter input:checked"),
+  ).map((cb) => cb.value.toLowerCase());
+
+  return machinesData.filter((m) => {
+    // lọc quận
+    if (checkedDistricts.length > 0 && !checkedDistricts.includes(m.district)) {
+      return false;
+    }
+
+    // lọc loại
+    if (selectedTypes.length > 0) {
+      if (!m.type) return false;
+
+      const t = m.type.toLowerCase();
+      if (!selectedTypes.some((type) => t.includes(type))) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+function toggleDistrictLayer() {
+  if (districtVisible) {
+    // 🔴 tắt
+    map.removeLayer(districtLayer);
+    districtVisible = false;
+  } else {
+    // 🟢 bật lại
+    districtLayer.addTo(map);
+    districtVisible = true;
+  }
+}
+
+function countMachinesByDistrict(data) {
+  const countMap = {};
+
+  data.forEach((m) => {
+    if (!m.district) return;
+
+    if (!countMap[m.district]) {
+      countMap[m.district] = 0;
+    }
+
+    countMap[m.district]++;
+  });
+
+  return countMap;
+}
+
+function renderDistrictFilter(geo) {
+  const box = document.getElementById("districtFilter");
+
+  // 🔥 đếm máy
+  const countMap = countMachinesByDistrict(machinesData);
+
+  // danh sách quận
+  allDistricts = geo.features.map((f) => f.properties.NAME_2);
+
+  // 🔥 FILTER + RENDER
+  box.innerHTML = allDistricts
+    .filter((d) => (countMap[d] || 0) > 0) // 👈 CHỈ GIỮ QUẬN CÓ MÁY
+    .map((d) => {
+      const count = countMap[d];
+
+      return `
+            <label>
+                <input type="checkbox" value="${d}" checked>
+                ${d} (${count})
+            </label><br>
+            `;
+    })
+    .join("");
+
+  // event
+  box.querySelectorAll("input").forEach((cb) => {
+    cb.addEventListener("change", applyDistrictFilter);
+  });
+}
+function applyDistrictFilter() {
+  const filtered = getFilteredMachines();
+
+  renderMarkers(filtered);
+  renderMachineList(filtered);
+
+  // highlight giữ nguyên
+  const checked = Array.from(
+    document.querySelectorAll("#districtFilter input:checked"),
+  ).map((cb) => cb.value);
+
+  resetDistrictStyle();
+
+  checked.forEach((name) => {
+    const layer = districtLayers[name];
+    if (layer) {
+      layer.setStyle({
+        fillColor: "#2196f3",
+        fillOpacity: 0.4,
+        weight: 3,
+        color: "#0d47a1",
+      });
+    }
+  });
+}
+function filterCategoryMulti() {
+  const checkboxes = document.querySelectorAll("#categoryFilter input:checked");
+
+  // lấy danh sách loại được chọn
+  const selectedTypes = Array.from(checkboxes).map((cb) =>
+    cb.value.toLowerCase(),
+  );
+
+  // nếu không chọn gì → không hiện gì
+  if (selectedTypes.length === 0) {
+    renderMarkers([]);
+    renderMachineList([]);
+    return;
+  }
+
+  const filtered = getFilteredMachines((m) => {
+    if (!m.type) return false;
+
+    const t = m.type.toLowerCase();
+
+    return selectedTypes.some((type) => t.includes(type));
+  });
+
+  renderMarkers(filtered);
+  renderMachineList(filtered);
+}
+
+//Map interaction
+function getRoute() {
+  if (!currentMachine) {
+    alert("Chọn máy trước!");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    const userLat = pos.coords.latitude;
+    const userLng = pos.coords.longitude;
+
+    if (routingControl) {
+      map.removeControl(routingControl);
+    }
+
+    routingControl = L.Routing.control({
+      waypoints: [
+        L.latLng(userLat, userLng),
+        L.latLng(currentMachine.lat, currentMachine.lng),
+      ],
+    }).addTo(map);
+  });
+}
+function getLocation() {
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+
+    map.setView([lat, lng], 16);
+
+    if (userMarker) {
+      map.removeLayer(userMarker);
+    }
+
+    userMarker = L.marker([lat, lng]).addTo(map);
+  });
+}
+function getRoute() {
+  if (!currentMachine) {
+    alert("Chọn máy trước!");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    const userLat = pos.coords.latitude;
+    const userLng = pos.coords.longitude;
+
+    if (routingControl) {
+      map.removeControl(routingControl);
+    }
+
+    routingControl = L.Routing.control({
+      waypoints: [
+        L.latLng(userLat, userLng),
+        L.latLng(currentMachine.lat, currentMachine.lng),
+      ],
+    }).addTo(map);
+  });
+}
+function closeRoute() {
+  if (routingControl) {
+    map.removeControl(routingControl);
+    routingControl = null;
+  }
+}
+function switchSidebar(tab) {
+  document
+    .querySelectorAll(".sidebar-panel")
+    .forEach((el) => (el.style.display = "none"));
+  document.getElementById("sidebar-" + tab).style.display = "block";
+
+  if (tab === "nav") {
+    loadNavData();
+  }
+}
+async function loadNavData() {
+  if (!currentMachine) return;
+
+  try {
+    const res = await fetch(`/api/machines/${currentMachine.id}/stock`);
+    const data = await res.json();
+
+    document.getElementById("nav-title").innerText =
+      "Máy: " + currentMachine.name;
+
+    renderNavStock(data.products);
+    renderNavReport(data.products);
+  } catch (err) {}
+}
+/////////////////////////
+async function loadPlaces() {
+  const res = await fetch("/api/machines");
+  let data = await res.json();
+
+  // 🔥 gán quận
+  data = await assignDistrictToMachines(data);
+
+  machinesData = data;
+
+  // render map + list
+  renderMarkers(machinesData);
+  renderMachineList(machinesData);
+
+  // 🔥 LOAD GEO + UPDATE FILTER
+  const geo = await fetch("/hanoi_districts.geojson").then((r) => r.json());
+
+  renderDistrictFilter(geo);
+}
+async function showPlace(place) {
+  currentMachine = place;
+
+  const res = await fetch(`/api/machine/${place.id}`);
+  const data = await res.json();
+
+  renderOverview(data);
+
+  loadOverview();
+  loadHistory(place.id);
+
+  // 🔥 thêm dòng này
+  loadStockCurrent();
+}
+//=====================================SEARCH==========================================
+document.getElementById("searchInput").addEventListener("input", function () {
+  const q = this.value.toLowerCase().trim();
+
+  if (q === "") {
+    renderMarkers(machinesData);
+    renderMachineList(machinesData);
+    return;
+  }
+  const base = getFilteredMachines();
+
+  const filtered = base.filter(
+    (m) =>
+      m.name.toLowerCase().includes(q) ||
+      (m.type && m.type.toLowerCase().includes(q)),
+  );
+
+  renderMarkers(filtered);
+  renderMachineList(filtered);
+});
+// category
+document.querySelectorAll("#categoryFilter input").forEach((cb) => {
+  cb.addEventListener("change", filterCategoryMulti);
+});
+// map click
+map.on("click", async function (e) {
+  // ================= MOVE MACHINE =================
+  if (movingMachine) {
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
+
+    await fetch(`/api/machines/${movingMachine.id}/move`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lat, lng }),
+    });
+
+    alert("✅ Đã di chuyển máy!");
+
+    movingMachine = null;
+
+    loadPlaces(); // reload marker
+    return; // 🔥 cực kỳ quan trọng (không chạy xuống dưới)
+  }
+
+  // ================= ADD MACHINE =================
+  if (!addingMachine) return;
+
+  newLatLng = e.latlng;
+
+  // xóa marker cũ nếu có
+  if (tempMarker) {
+    map.removeLayer(tempMarker);
+  }
+
+  // tạo marker tạm
+  tempMarker = L.marker([newLatLng.lat, newLatLng.lng]).addTo(map);
+
+  // hiện popup form
+  document.getElementById("addMachinePopup").classList.remove("hidden");
+
+  addingMachine = false;
+});
+
+//====================================DISTRICTS======================================
+let districtLayers = {};
+async function loadDistricts() {
+  const geo = await fetch("/hanoi_districts.geojson").then((res) => res.json());
+
+  renderDistrictFilter(geo);
+
+  districtLayer = L.geoJSON(geo, {
+    style: function () {
+      return {
+        color: "#ff5500",
+        weight: 2,
+        fillColor: "#ff9800",
+        fillOpacity: 0.15,
+      };
+    },
+
+    onEachFeature: function (feature, layer) {
+      const name = feature.properties.NAME_2;
+
+      // 🔥 lưu layer theo tên
+      districtLayers[name] = layer;
+
+      layer.bindPopup("Quận: " + name);
+
+      layer.on({
+        mouseover: function (e) {
+          e.target.setStyle({
+            weight: 4,
+            fillOpacity: 0.3,
+          });
+        },
+        mouseout: function (e) {
+          const layer = e.target;
+
+          // 🔥 nếu quận đang được tick → giữ highlight
+          const checked = Array.from(
+            document.querySelectorAll("#districtFilter input:checked"),
+          ).map((cb) => cb.value);
+
+          const name = layer.feature.properties.NAME_2;
+
+          if (checked.includes(name)) {
+            // giữ highlight
+            layer.setStyle({
+              fillColor: "#2196f3",
+              fillOpacity: 0.4,
+              weight: 3,
+              color: "#0d47a1",
+            });
+          } else {
+            // reset về mặc định
+            districtLayer.resetStyle(layer);
+          }
+        },
+      });
+    },
+  }).addTo(map);
+}
+function resetDistrictStyle() {
+  Object.values(districtLayers).forEach((layer) => {
+    districtLayer.resetStyle(layer);
+  });
+}
+//======================================GEO============================================
+function pointInPolygon(point, vs) {
+  const x = point[0],
+    y = point[1];
+  let inside = false;
+
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = vs[i][0],
+      yi = vs[i][1];
+    const xj = vs[j][0],
+      yj = vs[j][1];
+
+    const intersect =
+      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+
+    if (intersect) inside = !inside;
+  }
+
+  return inside;
+}
+function findDistrict(lat, lng, geo) {
+  for (const f of geo.features) {
+    const name = f.properties.NAME_2;
+    const coords = f.geometry.coordinates;
+
+    // MultiPolygon
+    for (const polygon of coords) {
+      for (const ring of polygon) {
+        if (pointInPolygon([lng, lat], ring)) {
+          return name;
+        }
+      }
+    }
+  }
+
+  return "Không rõ";
+}
+async function assignDistrictToMachines(machines) {
+  const geo = await fetch("/hanoi_districts.geojson").then((r) => r.json());
+
+  machines.forEach((m) => {
+    m.district = findDistrict(m.lat, m.lng, geo);
+  });
+
+  console.log("Machines sau khi gán quận:", machines);
+
+  return machines;
+}
+//======================================UTILS========================================
+function highlight(text, keyword) {
+  const re = new RegExp(`(${keyword})`, "gi");
+  return text.replace(re, `<span style="color:red">$1</span>`);
+}
+function timeAgo(date) {
+  if (!date) return "Chưa có dữ liệu";
+
+  const diff = (Date.now() - new Date(date)) / 1000;
+
+  if (diff < 60) return "vừa xong";
+  if (diff < 3600) return Math.floor(diff / 60) + " phút trước";
+  if (diff < 86400) return Math.floor(diff / 3600) + "giờ trước";
+
+  return Math.floor(diff / 86400) + " ngày trước";
+}
+async function changeImage() {
+  try {
+    const input = document.getElementById("machineImageInput");
+
+    if (!input) {
+      alert("Không tìm thấy input file");
+      return;
+    }
+
+    const file = input.files[0];
+
+    if (!file) {
+      alert("Chọn ảnh trước!");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("machineImage", file);
+
+    const res = await fetch(`/api/machines/${currentMachine.id}/image`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("Upload lỗi:", text);
+      alert("Upload thất bại!");
+      return;
+    }
+
+    await res.json().catch(() => null);
+
+    alert("Upload OK");
+
+    // 🔥 reload lại sidebar (QUAN TRỌNG để không mất info)
+    showPlace(currentMachine);
+  } catch (err) {
+    console.error("❌ Upload crash:", err);
+    alert("Lỗi upload!");
+  }
+}
+//=====================================UI CONTROL======================================
+function openTab(tab) {
+  document
+    .querySelectorAll(".tab-content")
+    .forEach((t) => t.classList.remove("active"));
+
+  document.getElementById(tab).classList.add("active");
+
+  if (tab === "chart" && currentMachine) {
+    loadCompare("month"); // mặc định xem theo tháng
+    loadTopProducts("month");
+  }
+}
+let sidebarHidden = false;
+
+function toggleLeftSidebar() {
+  const sidebar = document.getElementById("leftSidebar");
+  const btn = document.getElementById("toggleSidebarBtn");
+
+  sidebarHidden = !sidebarHidden;
+
+  if (sidebarHidden) {
+    sidebar.classList.add("hidden");
+    btn.innerText = "➡";
+  } else {
+    sidebar.classList.remove("hidden");
+    btn.innerText = "⬅";
+  }
+
+  setTimeout(() => {
+    map.invalidateSize(); // 🔥 FIX
+  }, 300);
+}
+let rightSidebarHidden = false;
+function toggleRightSidebar() {
+  const sidebar = document.querySelector(".sidebar");
+  const btn = document.getElementById("toggleRightSidebarBtn");
+
+  rightSidebarHidden = !rightSidebarHidden;
+
+  if (rightSidebarHidden) {
+    sidebar.classList.add("hidden");
+    btn.innerText = "⬅";
+  } else {
+    sidebar.classList.remove("hidden");
+    btn.innerText = "➡";
+  }
+
+  setTimeout(() => {
+    map.invalidateSize(); // 🔥 FIX
+  }, 300);
+}
+//======================================EVENT==========================================
+map.on("zoomend", () => {
+  const zoom = map.getZoom();
+
+  // 🔥 scale mượt từ 0.5 → 1
+  const scale = Math.max(0.5, Math.min(1, zoom / 18));
+
+  document.querySelectorAll(".label-text").forEach((el) => {
+    el.style.transform = `translateY(-10px) scale(${scale})`;
+  });
+});
+function updateDistrictHighlight() {
+  const checked = [
+    ...document.querySelectorAll("#districtFilter input:checked"),
+  ].map((c) => c.value);
+
+  districtLayer.eachLayer((layer) => {
+    const districtName = layer.feature.properties.name;
+
+    if (checked.includes(districtName)) {
+      layer.setStyle({
+        fillColor: "#4CAF50",
+        fillOpacity: 0.4,
+        weight: 2,
+      });
+    } else {
+      layer.setStyle({
+        fillColor: "#ccc",
+        fillOpacity: 0.1,
+        weight: 1,
+      });
+    }
+  });
+}
+// ✅ Tích tất cả
+function checkAllDistrict() {
+  document
+    .querySelectorAll("#districtFilter input")
+    .forEach((c) => (c.checked = true));
+  updateDistrictHighlight();
+}
+
+// ❌ Bỏ tích tất cả
+function uncheckAllDistrict() {
+  document
+    .querySelectorAll("#districtFilter input")
+    .forEach((c) => (c.checked = false));
+  updateDistrictHighlight();
+}
+//=======================================INIT========================================
+loadPlaces();
+loadDistricts();
+loadDashboard();
+loadSystemRevenue();
+document.getElementById("addMachinePopup").classList.add("hidden");
