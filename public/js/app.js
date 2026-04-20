@@ -1149,7 +1149,7 @@ function createHeatLayer(heatData) {
     blur: 20,
     maxZoom: 18,
 
-    max: 0.05, // 🔥 QUAN TRỌNG: giảm max để dễ lên đỏ
+    max: 0.04, // 🔥 QUAN TRỌNG: giảm max để dễ lên đỏ
 
     gradient: {
       0.1: "#00f",
