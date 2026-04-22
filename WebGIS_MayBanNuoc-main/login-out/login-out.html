@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGIS - Xác thực</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="auth-container">
+        <div class="header">
+            <i class="fas fa-map-marked-alt"></i>
+            <h1 id="form-title">Đăng nhập WebGIS</h1>
+        </div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label>Tên đăng nhập</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-user"></i>
+                    <input type="text" name="tendangnhap" placeholder="Username" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Mật khẩu</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" name="matkhau" placeholder="Password" required>
+                </div>
+            </div>
+            <button type="submit" class="btn-submit">ĐĂNG NHẬP</button>
+            <div class="switch-form">
+                Chưa có tài khoản? <a href="javascript:void(0)" onclick="toggleForm('register')">Đăng ký ngay</a>
+            </div>
+        </form>
+
+        <form id="register-form" >
+            <div class="form-group">
+                <label>Tên đăng nhập</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-user-plus"></i>
+                    <input type="text" name="tendangnhap" placeholder="Tạo tên đăng nhập" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Mật khẩu</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-key"></i>
+                    <input type="password" name="matkhau" placeholder="Mật khẩu (ít nhất 6 ký tự)" required>
+                </div>
+            </div>
+            <button type="submit" class="btn-submit">TẠO TÀI KHOẢN</button>
+            <div class="switch-form">
+                Đã có tài khoản? <a href="javascript:void(0)" onclick="toggleForm('login')">Đăng nhập</a>
+            </div>
+        </form>
+
+        <a href="" class="back-home">
+            <i class="fas fa-arrow-left"></i> Quay lại trang chủ
+        </a>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
