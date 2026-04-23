@@ -1,0 +1,739 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-turbo",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2026-04-23T01:29:46Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/4755987150",
+        "amenity": "vending_machine",
+        "check_date": "2025-03-23",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8408243,
+          21.0356265
+        ]
+      },
+      "id": "node/4755987150"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/4757324464",
+        "amenity": "vending_machine",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8535698,
+          21.0301599
+        ]
+      },
+      "id": "node/4757324464"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/4757324640",
+        "amenity": "vending_machine",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8511629,
+          21.0305558
+        ]
+      },
+      "id": "node/4757324640"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7085261328",
+        "amenity": "vending_machine",
+        "name": "Máy Bán Hàng Tự Động VVM",
+        "operator": "VVM",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8520413,
+          21.0317334
+        ]
+      },
+      "id": "node/7085261328"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7085620454",
+        "amenity": "vending_machine",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8336589,
+          21.0354929
+        ]
+      },
+      "id": "node/7085620454"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/9966237333",
+        "amenity": "vending_machine",
+        "check_date": "2025-07-30",
+        "currency:VND": "yes",
+        "drink:cola": "yes",
+        "drink:soft_drink": "yes",
+        "drink:water": "yes",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8534998,
+          21.0261759
+        ]
+      },
+      "id": "node/9966237333"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10114776453",
+        "amenity": "vending_machine",
+        "brand": "Skyline Vmac",
+        "currency:VND": "yes",
+        "name": "Skyline Vmac",
+        "payment:app": "yes",
+        "payment:cash": "yes",
+        "payment:electronic_purses": "yes",
+        "vending": "coffee"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.821121,
+          21.0169158
+        ]
+      },
+      "id": "node/10114776453"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10114776454",
+        "amenity": "vending_machine",
+        "brand": "Skyline Vmac",
+        "currency:VND": "yes",
+        "indoor": "yes",
+        "name": "Skyline Vmac",
+        "payment:app": "yes",
+        "payment:cash": "yes",
+        "payment:electronic_purses": "yes",
+        "vending": "coffee"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8450303,
+          21.0048117
+        ]
+      },
+      "id": "node/10114776454"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10114776455",
+        "amenity": "vending_machine",
+        "currency:VND": "yes",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8450321,
+          21.0047696
+        ]
+      },
+      "id": "node/10114776455"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10114776456",
+        "amenity": "vending_machine",
+        "currency:VND": "yes",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8446344,
+          21.004333
+        ]
+      },
+      "id": "node/10114776456"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10114776457",
+        "amenity": "vending_machine",
+        "currency:VND": "yes",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8445212,
+          21.0039218
+        ]
+      },
+      "id": "node/10114776457"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10114776458",
+        "amenity": "vending_machine",
+        "currency:VND": "yes",
+        "level": "1",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8445037,
+          21.0038136
+        ]
+      },
+      "id": "node/10114776458"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10114776460",
+        "amenity": "vending_machine",
+        "currency:VND": "yes",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.847074,
+          21.0048362
+        ]
+      },
+      "id": "node/10114776460"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10114776461",
+        "amenity": "vending_machine",
+        "currency:VND": "yes",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8471126,
+          21.0045488
+        ]
+      },
+      "id": "node/10114776461"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10114776462",
+        "amenity": "vending_machine",
+        "currency:VND": "yes",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8471137,
+          21.0041011
+        ]
+      },
+      "id": "node/10114776462"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10114776463",
+        "amenity": "vending_machine",
+        "currency:VND": "yes",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8473911,
+          21.0028115
+        ]
+      },
+      "id": "node/10114776463"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10114776464",
+        "amenity": "vending_machine",
+        "currency:VND": "yes",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.846408,
+          21.0017584
+        ]
+      },
+      "id": "node/10114776464"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10114776465",
+        "amenity": "vending_machine",
+        "currency:VND": "yes",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8470044,
+          21.0022865
+        ]
+      },
+      "id": "node/10114776465"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11152952454",
+        "amenity": "vending_machine",
+        "drink:tea": "yes",
+        "drink:water": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.7734766,
+          21.0725434
+        ]
+      },
+      "id": "node/11152952454"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11169202600",
+        "amenity": "vending_machine",
+        "vending": "sweets;drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.7819035,
+          21.0648449
+        ]
+      },
+      "id": "node/11169202600"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11183802119",
+        "amenity": "vending_machine",
+        "currency:VND": "yes",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8444851,
+          21.0052914
+        ]
+      },
+      "id": "node/11183802119"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11234119641",
+        "amenity": "vending_machine",
+        "currency:VND": "yes",
+        "drink:beer": "yes",
+        "drink:coffee": "yes",
+        "drink:cola": "yes",
+        "drink:energy_drink": "yes",
+        "drink:soft_drink": "yes",
+        "drink:tea": "yes",
+        "drink:water": "yes",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8501237,
+          21.039926
+        ]
+      },
+      "id": "node/11234119641"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11254919057",
+        "amenity": "vending_machine",
+        "brand": "Skyline Vmac",
+        "currency:VND": "yes",
+        "indoor": "yes",
+        "name": "Skyline Vmac",
+        "payment:app": "yes",
+        "payment:cash": "yes",
+        "payment:electronic_purses": "yes",
+        "vending": "coffee"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8443358,
+          21.0046205
+        ]
+      },
+      "id": "node/11254919057"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11254919058",
+        "amenity": "vending_machine",
+        "currency:VND": "yes",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8427393,
+          21.0039976
+        ]
+      },
+      "id": "node/11254919058"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11254919059",
+        "amenity": "vending_machine",
+        "currency:VND": "yes",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8422522,
+          21.0042936
+        ]
+      },
+      "id": "node/11254919059"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11254919060",
+        "amenity": "vending_machine",
+        "currency:VND": "yes",
+        "payment:cash": "yes",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8427909,
+          21.0042384
+        ]
+      },
+      "id": "node/11254919060"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11556781504",
+        "amenity": "vending_machine",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.7878384,
+          21.0419883
+        ]
+      },
+      "id": "node/11556781504"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11597884067",
+        "amenity": "vending_machine",
+        "vending": "coffee"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.7827592,
+          21.0405374
+        ]
+      },
+      "id": "node/11597884067"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11597930426",
+        "amenity": "vending_machine",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.7829082,
+          21.0403523
+        ]
+      },
+      "id": "node/11597930426"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11597930427",
+        "amenity": "vending_machine",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.7829068,
+          21.0400975
+        ]
+      },
+      "id": "node/11597930427"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11609354501",
+        "amenity": "vending_machine",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.785342,
+          21.0403699
+        ]
+      },
+      "id": "node/11609354501"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11614945279",
+        "amenity": "vending_machine",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.7837636,
+          21.0370977
+        ]
+      },
+      "id": "node/11614945279"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11861876399",
+        "amenity": "vending_machine",
+        "check_date": "2024-04-28",
+        "level": "0",
+        "payment:cards": "no",
+        "payment:cash": "yes",
+        "payment:credit_cards": "no",
+        "payment:debit_cards": "no",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8332646,
+          21.0360392
+        ]
+      },
+      "id": "node/11861876399"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/12086792100",
+        "amenity": "vending_machine",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8318695,
+          21.0351561
+        ]
+      },
+      "id": "node/12086792100"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/13266310293",
+        "amenity": "vending_machine",
+        "check_date": "2025-10-29",
+        "vending": "drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.7986691,
+          21.0401213
+        ]
+      },
+      "id": "node/13266310293"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/13266310294",
+        "amenity": "vending_machine",
+        "check_date": "2025-10-29",
+        "vending": "ice_cream;drinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.7981412,
+          21.0403768
+        ]
+      },
+      "id": "node/13266310294"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/13273415405",
+        "amenity": "vending_machine",
+        "check_date": "2025-11-01",
+        "payment:cash": "yes",
+        "vending": "drinks;water"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8397624,
+          21.0335049
+        ]
+      },
+      "id": "node/13273415405"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/13273415406",
+        "amenity": "vending_machine",
+        "check_date": "2025-11-01",
+        "payment:cards": "no",
+        "payment:cash": "yes",
+        "payment:credit_cards": "no",
+        "payment:debit_cards": "no",
+        "vending": "drinks;water"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8407981,
+          21.0356095
+        ]
+      },
+      "id": "node/13273415406"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/13273415407",
+        "amenity": "vending_machine",
+        "check_date": "2025-11-01",
+        "payment:cards": "no",
+        "payment:cash": "yes",
+        "payment:credit_cards": "no",
+        "payment:debit_cards": "no",
+        "vending": "drinks;water"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.8408194,
+          21.0369629
+        ]
+      },
+      "id": "node/13273415407"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/13273415409",
+        "amenity": "vending_machine",
+        "check_date": "2025-11-01",
+        "vending": "drinks;water"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.838941,
+          21.0369749
+        ]
+      },
+      "id": "node/13273415409"
+    }
+  ]
+}
