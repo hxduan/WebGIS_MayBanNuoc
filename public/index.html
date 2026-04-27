@@ -35,7 +35,7 @@
       />
 
       <div class="dropdown">
-        <button>🔥 Heatmap</button>
+        <button>Bản đồ nhiệt</button>
 
         <div class="dropdown-content">
           <div onclick="toggleHeatMap('day')">📅 Hôm nay</div>
@@ -88,7 +88,7 @@
       </div>
 
       <div class="dropdown">
-        <button>🔥 Máy bán chạy</button>
+        <button>Máy bán chạy</button>
         <div class="dropdown-content">
           <div onclick="filterHot('week')">7 ngày</div>
           <div onclick="filterHot('month')">30 ngày</div>
@@ -161,16 +161,16 @@
     <div class="sidebar">
       <!-- SWITCH TABS -->
       <div class="sidebar-tabs">
-        <button onclick="switchSidebar('overview')">Tổng quan</button>
+        <button onclick="switchSidebar('overview')">Thống kê</button>
         <button onclick="switchSidebar('nav')">Số lượng trong máy</button>
-        <button onclick="switchSidebar('detail')">Thông tin chi tiết</button>
+        <button onclick="switchSidebar('detail')">Máy đang chọn</button>
         <!-- 📌📍 📊-->
       </div>
 
       <!-- OVERVIEW PANEL -->
       <div id="sidebar-overview" class="sidebar-panel active">
         <p id="overviewDistance"></p>
-        <h3>Tổng quan máy</h3>
+        <h3>Thống kê máy đang chọn</h3>
 
         <div class="overview-grid">
           <div class="card">
@@ -194,7 +194,7 @@
           </div>
         </div>
 
-        <h4>💰 Doanh thu toàn hệ thống</h4>
+        <h4>Doanh thu toàn hệ thống</h4>
 
         <div class="overview-grid">
           <div class="card">
@@ -229,6 +229,11 @@
             <h3 id="errorMachines">0</h3>
           </div>
         </div>
+        <h4>Máy có sản phẩm hết hàng</h4>
+
+        <div id="outOfStockList" class="out-stock-list">
+          <!-- render bằng JS -->
+        </div>
       </div>
 
       <!-- STOCK PANEL -->
@@ -240,10 +245,6 @@
           <h3>📦 Tồn kho</h3>
           <div id="nav-stock-list"></div>
         </div>
-
-        <!-- REPORT -->
-
-        <!-- MAX STOCK -->
       </div>
 
       <!-- DETAIL PANEL -->

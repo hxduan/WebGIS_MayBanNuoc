@@ -186,21 +186,22 @@ function renderMarkers(data) {
 
     // ================= ERROR ICON =================
     if (p.status === "Lỗi") {
+      // 🔴 máy lỗi
       const iconDiv = L.divIcon({
         html: `<div style="
-                    position:absolute;
-                    top:-10px;
-                    right:-10px;
-                    background:red;
-                    color:white;
-                    width:20px;
-                    height:20px;
-                    border-radius:50%;
-                    font-size:14px;
-                    display:flex;
-                    justify-content:center;
-                    align-items:center;
-                ">!</div>`,
+      position:absolute;
+      top:-10px;
+      right:-10px;
+      background:red;
+      color:white;
+      width:20px;
+      height:20px;
+      border-radius:50%;
+      font-size:14px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+    ">!</div>`,
       });
 
       const errorMarker = L.marker([p.lat, p.lng], {
@@ -208,26 +209,46 @@ function renderMarkers(data) {
         interactive: false,
       }).addTo(map);
 
-      // ❗ KHÔNG gắn data
       markers.push(errorMarker);
-    }
-    // ================= STOCK ICON =================
-    if (p.total_stock <= 25) {
+    } else if (p.has_out_of_stock === true || p.has_out_of_stock === "t") {
+      // 🟠 có sản phẩm hết hàng
+
       const stockIcon = L.divIcon({
         html: `<div style="
       position:absolute;
-      bottom:-10px;
-      left:-10px;
+      top:-8px;
+      right:-8px;
+      width:12px;
+      height:12px;
       background:orange;
-      color:white;
-      width:18px;
-      height:18px;
       border-radius:50%;
-      font-size:10px;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-    ">•</div>`,
+      border:2px solid white;
+    "></div>`,
+        className: "",
+      });
+
+      const stockMarker = L.marker([p.lat, p.lng], {
+        icon: stockIcon,
+        interactive: false,
+      }).addTo(map);
+
+      markers.push(stockMarker);
+    }
+
+    // ================= STOCK ICON =================
+    if (p.has_out_of_stock && p.status !== "Lỗi") {
+      const stockIcon = L.divIcon({
+        html: `<div style="
+      position:absolute;
+      top:-8px;
+      right:-8px;
+      background:orange;
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      border:2px solid white;
+    "></div>`,
+        className: "",
       });
 
       const stockMarker = L.marker([p.lat, p.lng], {
@@ -257,10 +278,18 @@ function renderMachineList(data) {
             <div class="machine-row">
                 
                 <div class="machine-info">
-                    <div class="machine-name">
-                        ${m.status === "Lỗi" ? "<span style='color:red'>●</span> " : ""}
-                        ${highlight(m.name, document.getElementById("searchInput").value)}
-                    </div>
+                <div class="machine-name">
+  ${
+    m.status === "Lỗi"
+      ? "<span class='dot-red'></span>"
+      : m.has_out_of_stock === true || m.has_out_of_stock === "t"
+        ? "<span class='dot-orange'></span>"
+        : ""
+  }
+
+  ${highlight(m.name, document.getElementById("searchInput").value)}
+</div>
+                    
                     
                     <div class="machine-type">Loại: ${m.type}</div>
                 </div>
@@ -604,6 +633,27 @@ async function loadMachines() {
 
   renderMarkers(machines);
   renderMachineList(machines);
+}
+async function loadOutOfStockMachines() {
+  const res = await fetch("/api/machines/out-of-stock");
+  const data = await res.json();
+
+  const box = document.getElementById("outOfStockList");
+
+  if (!data.length) {
+    box.innerHTML = "<p>✅ Không có máy hết hàng</p>";
+    return;
+  }
+
+  box.innerHTML = data
+    .map(
+      (m) => `
+    <div class="out-stock-item" onclick="focusMachine(${m.id})">
+      ⚠️ ${m.name} (${m.out_count} SP hết)
+    </div>
+  `,
+    )
+    .join("");
 }
 function focusMachine(id, el) {
   const m = machinesData.find((x) => x.id === id);
@@ -1492,12 +1542,25 @@ document.getElementById("searchInput").addEventListener("input", function () {
     return;
   }
   const base = getFilteredMachines();
+  const filtered = base.filter((m) => {
+    const hasOut = m.has_out_of_stock === true || m.has_out_of_stock === "t";
 
-  const filtered = base.filter(
-    (m) =>
+    // 🔴 tìm máy lỗi
+    if (q.includes("lỗi") || q.includes("loi")) {
+      return m.status === "Lỗi";
+    }
+
+    // 🟠 tìm máy hết hàng
+    if (q.includes("hết") || q.includes("het")) {
+      return hasOut;
+    }
+
+    // 🔍 tìm bình thường
+    return (
       m.name.toLowerCase().includes(q) ||
-      (m.type && m.type.toLowerCase().includes(q)),
-  );
+      (m.type && m.type.toLowerCase().includes(q))
+    );
+  });
 
   renderMarkers(filtered);
   renderMachineList(filtered);
@@ -1822,4 +1885,5 @@ loadPlaces();
 loadDistricts();
 loadDashboard();
 loadSystemRevenue();
+loadOutOfStockMachines();
 document.getElementById("addMachinePopup").classList.add("hidden");

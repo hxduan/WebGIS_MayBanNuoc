@@ -43,8 +43,24 @@ const upload = multer({ storage });
 // --- GROUP 1: MACHINES ---
 // CRUD
 app.get("/api/machines", async (req, res) => {
-  const result = await pool.query("SELECT * FROM machines");
-  res.json(result.rows);
+  try {
+    const result = await pool.query(`
+      SELECT 
+        m.*,
+        EXISTS (
+          SELECT 1 
+          FROM products p
+          WHERE p.machine_id = m.id
+            AND p.stock <= 0
+        ) AS has_out_of_stock
+      FROM machines m
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Lỗi load machines" });
+  }
 });
 app.post("/api/machines", async (req, res) => {
   try {
@@ -82,6 +98,26 @@ app.put("/api/machines/:id", async (req, res) => {
 app.delete("/api/machines/:id", async (req, res) => {
   await pool.query("DELETE FROM machines WHERE id=$1", [req.params.id]);
   res.json({ message: "Đã xóa" });
+});
+app.get("/api/machines/out-of-stock", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        m.id,
+        m.name,
+        COUNT(*) as out_count
+      FROM machines m
+      JOIN products p ON m.id = p.machine_id
+      WHERE p.stock = 0   -- 🔥 CHỈ CẦN 1 SP = 0
+      GROUP BY m.id, m.name
+      ORDER BY out_count DESC
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Lỗi out of stock" });
+  }
 });
 //thống kê toàn bộ máy
 app.get("/api/system/revenue", async (req, res) => {
