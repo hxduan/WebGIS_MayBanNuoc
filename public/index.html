@@ -27,6 +27,7 @@
     <!-- HEADER -->
     <div class="header">
       <!-- SEARCH -->
+
       <input
         id="searchInput"
         class="header-search"
@@ -92,6 +93,15 @@
           <div onclick="filterHot('week')">7 ngày</div>
           <div onclick="filterHot('month')">30 ngày</div>
           <div onclick="filterHot('year')">1 năm</div>
+        </div>
+      </div>
+      <div class="dropdown">
+        <button>Gợi ý đặt máy</button>
+        <div class="dropdown-content">
+          <button onclick="loadSuggestionsByType('cafe')">Cafe</button>
+          <button onclick="loadSuggestionsByType('trasua')">Trà sữa</button>
+          <button onclick="loadSuggestionsByType('nuoc_ep')">Nước ép</button>
+          <button onclick="loadSuggestionsByType('giaikhat')">Giải khát</button>
         </div>
       </div>
 

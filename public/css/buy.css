@@ -1,0 +1,120 @@
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #2f6ea3;
+}
+
+/* HEADER */
+.header {
+  background: #3b82b1;
+  color: white;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.search-box {
+  position: relative;
+}
+
+.search-box input {
+  padding: 8px;
+  width: 250px;
+}
+
+/* dropdown */
+.search-list {
+  position: absolute;
+  top: 35px;
+  width: 100%;
+  background: rgb(54, 63, 137);
+  border: 1px solid #ccc;
+  display: none;
+  z-index: 10;
+}
+
+.search-item {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.search-item:hover {
+  background: #eee;
+}
+
+/* LAYOUT */
+.container {
+  display: flex;
+  padding: 20px;
+  gap: 20px;
+}
+
+.left {
+  flex: 2;
+  background: #eee;
+  padding: 15px;
+}
+
+.products {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.product {
+  background: white;
+  text-align: center;
+  padding: 10px;
+  position: relative;
+}
+
+.product img {
+  width: 70px;
+}
+
+.add-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.out {
+  color: red;
+  font-size: 12px;
+}
+
+/* RIGHT */
+.right {
+  flex: 1;
+  background: #eee;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-item {
+  display: grid;
+  grid-template-columns: 1fr 50px 80px 30px;
+  margin-bottom: 10px;
+}
+
+.total {
+  margin-top: auto;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.btns {
+  display: flex;
+  gap: 10px;
+}
+
+.pay {
+  background: orange;
+  color: white;
+}

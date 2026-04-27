@@ -1,148 +1,193 @@
-// Cấu hình địa chỉ Server Backend
 const HOST = "http://localhost:3000";
 
-// Ảnh mặc định dùng mã SVG để không bao giờ bị lỗi load ảnh
-const DEFAULT_IMG =
-  "data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2270%22%20height%3D%2270%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23eee%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-family%3D%22Arial%22%20font-size%3D%2210%22%20fill%3D%22%23aaa%22%20text-anchor%3D%22middle%22%20dy%3D%22.3em%22%3ENo%20Image%3C%2Ftext%3E%3C%2Fsvg%3E";
-
 let allMachines = [];
+let products = [];
+let cart = [];
+let currentMachineId = null;
 
-// 1. Khởi tạo dữ liệu
+// INIT
 async function init() {
   try {
     const res = await fetch(`${HOST}/api/machines`);
-    if (!res.ok) throw new Error("Server không phản hồi");
     allMachines = await res.json();
-    console.log("✅ Đã tải dữ liệu máy thành công");
   } catch (err) {
-    console.error("❌ Lỗi kết nối:", err);
+    alert("Lỗi load máy!");
   }
 }
 
-// 2. Hàm tìm kiếm máy (Đã fix lỗi ReferenceError)
-async function handleSearch() {
-  const keyword = document
-    .getElementById("searchInput")
-    .value.trim()
-    .toLowerCase();
-  const machineDetail = document.getElementById("machineDetail");
-  const productList = document.getElementById("productList");
-  const welcomeNote = document.getElementById("welcomeNote");
+document.getElementById("searchInput").addEventListener("input", handleSearch);
+
+// SEARCH DROPDOWN
+function handleSearch() {
+  const keyword = document.getElementById("searchInput").value.toLowerCase();
+  const box = document.getElementById("searchList");
 
   if (!keyword) {
-    machineDetail.style.display = "none";
-    productList.innerHTML = "";
-    welcomeNote.style.display = "block";
+    box.style.display = "none";
     return;
   }
 
-  const found = allMachines.find(
-    (m) => m.name && m.name.toLowerCase().includes(keyword),
+  const results = allMachines.filter((m) =>
+    m.name?.toLowerCase().includes(keyword),
   );
 
-  if (found) {
-    welcomeNote.style.display = "none";
-    machineDetail.style.display = "block";
-    document.getElementById("mName").innerText = found.name;
-    document.getElementById("mStatus").innerText =
-      "Trạng thái: " + found.status;
-    loadMachineProducts(found.id, found.status);
-  } else {
-    machineDetail.style.display = "none";
-    productList.innerHTML = "";
-    welcomeNote.style.display = "block";
-    welcomeNote.innerText = "Không tìm thấy máy này.";
-  }
-}
-
-// 3. Tải sản phẩm
-async function loadMachineProducts(machineId, status) {
-  try {
-    const res = await fetch(`${HOST}/api/machine/${machineId}`);
-    const data = await res.json();
-    renderUI(data.products, machineId, status);
-  } catch (err) {
-    console.error("❌ Lỗi tải sản phẩm:", err);
-  }
-}
-
-// 4. Hiển thị UI
-// Trong hàm renderUI của buy.js, hãy đảm bảo bạn truyền đúng p.id
-// p.id trong bảng của bạn chính là ID duy nhất của dòng đó
-
-function renderUI(products, machineId, status) {
-  const list = document.getElementById("productList");
-  if (!products || products.length === 0) {
-    list.innerHTML = "<p>Máy trống.</p>";
+  if (results.length === 0) {
+    box.innerHTML = `<div class="search-item">Không có kết quả</div>`;
+    box.style.display = "block";
     return;
   }
 
-  list.innerHTML = products
-    .map((p) => {
-      const imageURL = p.image ? `${HOST}${p.image}` : DEFAULT_IMG;
-      return `
-        <div class="product-card" style="display: flex; align-items: center; margin-bottom: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 8px;">
-            <img src="${imageURL}" onerror="this.src='${DEFAULT_IMG}'" style="width: 70px; height: 70px; object-fit: cover; margin-right: 15px;">
-            <div style="flex:1">
-                <strong>${p.name}</strong><br>
-                <span style="color: #e67e22; font-weight: bold;">${Number(p.price).toLocaleString()}đ</span><br>
-                <small>Kho: ${p.stock}</small>
-            </div>
-            
-            <div style="margin-right: 15px;">
-                <input type="number" id="qty_${p.id}" value="1" min="1" max="${p.stock}" 
-                    style="width: 50px; padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
-            </div>
+  box.innerHTML = results
+    .map(
+      (m) => `
+    <div class="search-item" onclick="selectMachine(${m.id}, \`${m.name}\`)">
+      ${m.name}
+    </div>
+  `,
+    )
+    .join("");
 
-            <button class="buy-btn" 
-                ${p.stock <= 0 || status !== "Hoạt động" ? "disabled" : ""} 
-                onclick="executeBuy(${p.id}, '${p.name}', ${machineId})">
-                Mua
-            </button>
-        </div>`;
-    })
+  box.style.display = "block";
+}
+
+// SELECT MACHINE
+function selectMachine(id, name) {
+  document.getElementById("searchInput").value = name;
+  document.getElementById("searchList").style.display = "none";
+  document.getElementById("headerTitle").innerText = "🥤 " + name;
+
+  currentMachineId = id;
+  loadProducts(id);
+}
+
+// LOAD PRODUCTS
+async function loadProducts(id) {
+  const res = await fetch(`${HOST}/api/machine/${id}`);
+  const data = await res.json();
+  products = data.products;
+  renderProducts();
+}
+
+// RENDER PRODUCTS
+function renderProducts() {
+  const box = document.getElementById("productList");
+
+  box.innerHTML = products
+    .map(
+      (p) => `
+    <div class="product">
+      <button class="add-btn"
+        ${p.stock <= 0 ? "disabled" : ""}
+        onclick="addToCart(${p.id}, \`${p.name}\`, ${p.price})">
+        +
+      </button>
+
+      <img src="${p.image ? HOST + p.image : "https://via.placeholder.com/70"}"/>
+
+      <p>${p.name}</p>
+      <p>${Number(p.price).toLocaleString()}đ</p>
+      <p>Còn ${p.stock}</p>
+
+      ${p.stock <= 0 ? `<p class="out">Hết hàng</p>` : ""}
+    </div>
+  `,
+    )
     .join("");
 }
 
-// 5. Thanh toán (Khớp bảng Sales của bạn)
-async function executeBuy(productId, productName, machineId) {
-  // Lấy số lượng từ ô input tương ứng
-  const quantityInput = document.getElementById(`qty_${productId}`);
-  const quantity = parseInt(quantityInput.value);
+// CART
+function addToCart(id, name, price) {
+  const item = cart.find((i) => i.id === id);
+  if (item) item.qty++;
+  else cart.push({ id, name, price, qty: 1 });
 
-  if (isNaN(quantity) || quantity <= 0) {
-    alert("Vui lòng nhập số lượng hợp lệ!");
+  renderCart();
+}
+
+function renderCart() {
+  const box = document.getElementById("cartList");
+
+  if (cart.length === 0) {
+    box.innerHTML = "<p>Chưa có sản phẩm</p>";
+    document.getElementById("totalPrice").innerText = "Tổng: 0đ";
     return;
   }
 
-  if (!confirm(`Xác nhận mua ${quantity} ${productName}?`)) return;
+  box.innerHTML = cart
+    .map(
+      (i) => `
+    <div class="cart-item">
+      <span>${i.name}</span>
+
+      <input type="number" min="1" value="${i.qty}"
+        onchange="changeQty(${i.id}, this.value)">
+
+      <span>${(i.price * i.qty).toLocaleString()}đ</span>
+
+      <button onclick="removeItem(${i.id})">❌</button>
+    </div>
+  `,
+    )
+    .join("");
+
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  document.getElementById("totalPrice").innerText =
+    "Tổng: " + total.toLocaleString() + "đ";
+}
+
+function changeQty(id, val) {
+  const item = cart.find((i) => i.id === id);
+  item.qty = Math.max(1, parseInt(val) || 1);
+  renderCart();
+}
+
+function removeItem(id) {
+  cart = cart.filter((i) => i.id !== id);
+  renderCart();
+}
+
+function clearCart() {
+  cart = [];
+  renderCart();
+}
+
+// CHECKOUT
+async function checkout() {
+  if (!currentMachineId) return alert("Chưa chọn máy");
+  if (cart.length === 0) return alert("Chưa có sản phẩm");
 
   try {
-    const response = await fetch(`${HOST}/api/sales`, {
+    const res = await fetch(`${HOST}/api/sales`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        machine_id: Number(machineId),
-        items: [
-          {
-            product_id: Number(productId),
-            quantity: quantity, // Gửi số lượng người dùng đã chọn
-          },
-        ],
+        machine_id: currentMachineId,
+        items: cart.map((i) => ({
+          product_id: i.id,
+          quantity: i.qty,
+        })),
       }),
     });
 
-    const result = await response.json();
-    if (response.ok) {
-      alert(`✅ Đã mua thành công ${quantity} ${productName}!`);
-      loadMachineProducts(machineId, "Hoạt động"); // Cập nhật lại kho
-    } else {
-      alert("❌ Lỗi: " + result.error);
-    }
+    const result = await res.json();
+
+    if (!res.ok) throw new Error(result.error);
+
+    alert("✅ Thanh toán thành công");
+
+    cart = [];
+    renderCart();
+    loadProducts(currentMachineId);
   } catch (err) {
-    alert("Lỗi kết nối server!");
+    alert("❌ " + err.message);
   }
 }
 
-// Gọi khởi tạo
+// CLICK OUTSIDE → ẨN DROPDOWN
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".search-box")) {
+    document.getElementById("searchList").style.display = "none";
+  }
+});
+
 init();
