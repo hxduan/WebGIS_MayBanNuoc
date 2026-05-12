@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebGIS - Bản đồ tổng hợp dữ liệu Hà Nội</title>
+  <meta name="description" content="Bản đồ WebGIS tổng hợp toàn bộ dữ liệu máy bán nước, trường học, bệnh viện, công viên và văn phòng tại Hà Nội." />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Leaflet MarkerCluster CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-dark:      #0d1117;
+      --bg-panel:     #161b22;
+      --bg-card:      #1c2333;
+      --bg-hover:     #21293b;
+      --border:       #30363d;
+      --accent:       #58a6ff;
+      --accent2:      #3fb950;
+      --text-primary: #e6edf3;
+      --text-muted:   #8b949e;
+      --shadow:       0 8px 32px rgba(0,0,0,.5);
+      --radius:       12px;
+      --panel-w:      310px;
+
+      /* Layer colors */
+      --c-drink:    #38bdf8;
+      --c-hospital: #f87171;
+      --c-school:   #a78bfa;
+      --c-park:     #34d399;
+      --c-office:   #fbbf24;
+    }
+
+    html, body { height: 100%; font-family: 'Inter', sans-serif; }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+
+    /* ===== MAP ===== */
+    #map {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+
+    /* ===== TOPBAR ===== */
+    #topbar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 56px;
+      background: rgba(22, 27, 34, 0.92);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 18px;
+      z-index: 1000;
+    }
+
+    #topbar .logo {
+      font-size: 18px;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      white-space: nowrap;
+      letter-spacing: -0.3px;
+    }
+
+    #topbar .divider {
+      width: 1px; height: 28px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    /* Search */
+    #searchBox {
+      flex: 1;
+      max-width: 380px;
+      position: relative;
+    }
+    #searchBox svg {
+      position: absolute;
+      left: 11px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    #searchInput {
+      width: 100%;
+      padding: 8px 12px 8px 36px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 13px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    #searchInput:focus { border-color: var(--accent); }
+    #searchInput::placeholder { color: var(--text-muted); }
+
+    /* Stats strip */
+    .stat-chips {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .stat-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid;
+      cursor: default;
+      transition: opacity .2s;
+    }
+    .stat-chip .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Panel toggle button */
+    #panelToggleBtn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      padding: 7px 10px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background .2s;
+      flex-shrink: 0;
+    }
+    #panelToggleBtn:hover { background: var(--bg-hover); }
+
+    /* ===== SIDE PANEL ===== */
+    #panel {
+      position: absolute;
+      top: 56px;
+      left: 0;
+      bottom: 0;
+      width: var(--panel-w);
+      background: rgba(22, 27, 34, 0.95);
+      backdrop-filter: blur(14px);
+      border-right: 1px solid var(--border);
+      z-index: 900;
+      display: flex;
+      flex-direction: column;
+      transition: transform .3s cubic-bezier(.4,0,.2,1);
+      overflow: hidden;
+    }
+    #panel.collapsed { transform: translateX(calc(-1 * var(--panel-w))); }
+
+    /* Layer controls */
+    .panel-section {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    /* Toggle cards */
+    .layer-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+      user-select: none;
+    }
+    .layer-card:hover { background: var(--bg-hover); }
+    .layer-card.active { border-color: var(--accent); background: rgba(88,166,255,.07); }
+
+    .layer-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .layer-name {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .layer-count {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--bg-dark);
+      padding: 2px 7px;
+      border-radius: 12px;
+    }
+    .layer-toggle {
+      width: 34px; height: 18px;
+      border-radius: 9px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      position: relative;
+      flex-shrink: 0;
+      transition: background .2s;
+    }
+    .layer-toggle::after {
+      content: '';
+      position: absolute;
+      width: 12px; height: 12px;
+      top: 2px; left: 2px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: transform .2s, background .2s;
+    }
+    .layer-card.on .layer-toggle {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .layer-card.on .layer-toggle::after {
+      transform: translateX(16px);
+      background: white;
+    }
+
+    /* Basemap switcher */
+    .basemap-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .basemap-btn {
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: all .15s;
+    }
+    .basemap-btn:hover { background: var(--bg-hover); }
+    .basemap-btn.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+    /* Feature list */
+    #featureList {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+    #featureList::-webkit-scrollbar { width: 4px; }
+    #featureList::-webkit-scrollbar-track { background: transparent; }
+    #featureList::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .feature-item:hover { background: var(--bg-card); border-color: var(--border); }
+    .feature-item.active { background: rgba(88,166,255,.1); border-color: var(--accent); }
+    .feature-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .feature-name {
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.3;
+    }
+    .feature-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .no-results {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      padding: 32px 16px;
+    }
+
+    /* ===== POPUP CUSTOM ===== */
+    .leaflet-popup-content-wrapper {
+      background: var(--bg-panel) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 12px !important;
+      box-shadow: var(--shadow) !important;
+      color: var(--text-primary) !important;
+    }
+    .leaflet-popup-tip { background: var(--bg-panel) !important; }
+    .leaflet-popup-close-button { color: var(--text-muted) !important; font-size: 18px !important; }
+
+    .popup-inner { min-width: 200px; }
+    .popup-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .popup-icon { font-size: 22px; }
+    .popup-title { font-size: 14px; font-weight: 600; }
+    .popup-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 8px;
+      border: 1px solid;
+    }
+    .popup-row {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+      display: flex;
+      gap: 6px;
+    }
+    .popup-row span { color: var(--text-primary); }
+    .popup-coord {
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      word-break: break-all;
+    }
+
+    /* ===== MINI INFO BAR (bottom) ===== */
+    #infoBar {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(22, 27, 34, 0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 8px 20px;
+      font-size: 12px;
+      color: var(--text-muted);
+      z-index: 900;
+      pointer-events: none;
+      white-space: nowrap;
+      transition: opacity .3s;
+    }
+
+    /* ===== ZOOM CONTROL re-style ===== */
+    .leaflet-control-zoom a {
+      background: var(--bg-panel) !important;
+      color: var(--text-primary) !important;
+      border-color: var(--border) !important;
+    }
+    .leaflet-control-zoom a:hover { background: var(--bg-hover) !important; }
+
+    /* ===== LOADING ===== */
+    #loadingOverlay {
+      position: absolute;
+      inset: 0;
+      background: var(--bg-dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      gap: 16px;
+      transition: opacity .4s;
+    }
+    #loadingOverlay.done { opacity: 0; pointer-events: none; }
+
+    .spinner {
+      width: 44px; height: 44px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text { color: var(--text-muted); font-size: 14px; }
+    .loading-bar-wrap {
+      width: 200px; height: 4px;
+      background: var(--bg-card);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .loading-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px;
+      width: 0%;
+      transition: width .3s;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 600px) {
+      :root { --panel-w: 100vw; }
+      .stat-chips { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Đang tải dữ liệu...</div>
+  <div class="loading-bar-wrap"><div class="loading-bar" id="loadingBar"></div></div>
+</div>
+
+<!-- Top bar -->
+<div id="topbar">
+  <div class="logo">🗺️ WebGIS Hà Nội</div>
+  <div class="divider"></div>
+
+  <div id="searchBox">
+    <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+      <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+    </svg>
+    <input id="searchInput" type="text" placeholder="Tìm kiếm địa điểm...">
+  </div>
+
+  <div class="stat-chips" id="statChips"></div>
+
+  <button id="panelToggleBtn" onclick="togglePanel()" title="Bật/Tắt bảng điều khiển">☰</button>
+</div>
+
+<!-- Side panel -->
+<div id="panel">
+  <!-- Layers section -->
+  <div class="panel-section">
+    <div class="panel-section-title">Lớp dữ liệu</div>
+    <div id="layerCards"></div>
+    <button onclick="toggleAllLayers(true)" style="width:48%;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:12px;cursor:pointer;margin-right:4%;">✅ Bật tất cả</button>
+    <button onclick="toggleAllLayers(false)" style="width:48%;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:12px;cursor:pointer;">❌ Tắt tất cả</button>
+  </div>
+
+  <!-- Basemap section -->
+  <div class="panel-section">
+    <div class="panel-section-title">Nền bản đồ</div>
+    <div class="basemap-grid" id="basemapGrid"></div>
+  </div>
+
+  <!-- Feature list -->
+  <div class="panel-section" style="border-bottom:none;padding-bottom:4px;">
+    <div class="panel-section-title">Danh sách địa điểm (<span id="featureCount">0</span>)</div>
+  </div>
+  <div id="featureList"></div>
+</div>
+
+<!-- Map container -->
+<div id="map"></div>
+
+<!-- Info bar -->
+<div id="infoBar" id="infoBar">📍 Hover lên điểm để xem thông tin</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet MarkerCluster -->
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+<script>
+// =====================================================================
+//  CONFIG
+// =====================================================================
+const DATA_SOURCES = [
+  {
+    id: 'drink',
+    label: 'Máy bán nước',
+    file: '/data/drink.geojson',
+    icon: '🥤',
+    color: '#38bdf8',
+    getTitle: p => p.name || p.brand || 'Máy bán nước',
+    getInfo: p => {
+      const vending = p.vending || '';
+      if (vending.includes('coffee')) return 'Máy bán cà phê';
+      if (vending.includes('drinks')) return 'Máy bán đồ uống';
+      return 'Máy bán hàng tự động';
+    },
+  },
+  {
+    id: 'hospital',
+    label: 'Bệnh viện',
+    file: '/data/hospitals.geojson',
+    icon: '🏥',
+    color: '#f87171',
+    getTitle: p => p.name || p['name:vi'] || p['name:en'] || 'Bệnh viện',
+    getInfo: p => {
+      const amenity = p.amenity || p.healthcare || '';
+      if (amenity === 'hospital') return 'Bệnh viện';
+      if (amenity === 'clinic') return 'Phòng khám';
+      return amenity || 'Cơ sở y tế';
+    },
+  },
+  {
+    id: 'school',
+    label: 'Trường học',
+    file: '/data/schools.geojson',
+    icon: '🏫',
+    color: '#a78bfa',
+    getTitle: p => p.name || p['name:vi'] || p['name:en'] || 'Trường học',
+    getInfo: p => {
+      const amenity = p.amenity || '';
+      if (amenity === 'university') return 'Đại học';
+      if (amenity === 'college') return 'Cao đẳng';
+      if (amenity === 'school') return 'Trường phổ thông';
+      if (amenity === 'kindergarten') return 'Mầm non';
+      return amenity || 'Cơ sở giáo dục';
+    },
+  },
+  {
+    id: 'park',
+    label: 'Công viên',
+    file: '/data/parks.geojson',
+    icon: '🌳',
+    color: '#34d399',
+    getTitle: p => p.name || p['name:vi'] || p['name:en'] || 'Công viên',
+    getInfo: p => {
+      const leisure = p.leisure || p.landuse || '';
+      if (leisure === 'park') return 'Công viên';
+      if (leisure === 'garden') return 'Vườn hoa';
+      if (leisure === 'nature_reserve') return 'Khu bảo tồn';
+      return leisure || 'Không gian xanh';
+    },
+  },
+  {
+    id: 'office',
+    label: 'Văn phòng',
+    file: '/data/offices.geojson',
+    icon: '🏢',
+    color: '#fbbf24',
+    getTitle: p => p.name || p['name:vi'] || p['name:en'] || 'Văn phòng',
+    getInfo: p => {
+      const office = p.office || p.building || '';
+      if (office === 'government') return 'Cơ quan nhà nước';
+      if (office === 'company') return 'Công ty';
+      return office || 'Tòa nhà văn phòng';
+    },
+  },
+];
+
+// =====================================================================
+//  STATE
+// =====================================================================
+const map = L.map('map', {
+  center: [21.0285, 105.8542],
+  zoom: 13,
+  zoomControl: false,
+});
+
+// Custom zoom position
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+// Basemaps
+const BASEMAPS = {
+  'OSM Chuẩn': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap', maxZoom: 19,
+  }),
+  'Tối giản': L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© CARTO', maxZoom: 19,
+  }),
+  'Sáng': L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© CARTO', maxZoom: 19,
+  }),
+  'Vệ tinh': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '© Esri', maxZoom: 19,
+  }),
+};
+
+BASEMAPS['Tối giản'].addTo(map); // Default
+let currentBasemap = 'Tối giản';
+
+// Layer state
+const layerState = {}; // id -> { cluster, data[], on }
+let allFeatures = [];  // flat list for search
+let panelOpen = true;
+let activeItemEl = null;
+
+// =====================================================================
+//  UTIL: Create custom SVG icon
+// =====================================================================
+function makeIcon(emoji, color) {
+  return L.divIcon({
+    html: `
+      <div style="
+        width:32px;height:32px;
+        border-radius:50% 50% 50% 0;
+        transform:rotate(-45deg);
+        background:${color};
+        border:2px solid white;
+        box-shadow:0 2px 8px rgba(0,0,0,.4);
+        display:flex;align-items:center;justify-content:center;
+      ">
+        <span style="transform:rotate(45deg);font-size:14px;">${emoji}</span>
+      </div>`,
+    className: '',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -34],
+  });
+}
+
+// =====================================================================
+//  UTIL: Get centroid from any GeoJSON geometry
+// =====================================================================
+function getCentroid(geometry) {
+  if (!geometry) return null;
+
+  if (geometry.type === 'Point') {
+    return { lat: geometry.coordinates[1], lng: geometry.coordinates[0] };
+  }
+
+  // For polygons/multipolygons use bounding box center
+  let coords = [];
+  const flatten = (arr) => {
+    if (typeof arr[0] === 'number') { coords.push(arr); return; }
+    arr.forEach(flatten);
+  };
+  flatten(geometry.coordinates);
+
+  if (!coords.length) return null;
+
+  const lats = coords.map(c => c[1]);
+  const lngs = coords.map(c => c[0]);
+  return {
+    lat: (Math.min(...lats) + Math.max(...lats)) / 2,
+    lng: (Math.min(...lngs) + Math.max(...lngs)) / 2,
+  };
+}
+
+// =====================================================================
+//  POPUP
+// =====================================================================
+function buildPopup(source, props, centroid) {
+  const title = source.getTitle(props);
+  const info  = source.getInfo(props);
+
+  const payment = [
+    props['payment:cash'] === 'yes' ? '💵 Tiền mặt' : null,
+    props['payment:app'] === 'yes'  ? '📱 App' : null,
+    (props['payment:cards'] === 'yes' || props['payment:electronic_purses'] === 'yes') ? '💳 Thẻ' : null,
+  ].filter(Boolean).join('  ');
+
+  const operator = props.operator || props.brand || props.owner || '';
+
+  return `
+    <div class="popup-inner">
+      <div class="popup-header">
+        <span class="popup-icon">${source.icon}</span>
+        <div>
+          <div class="popup-title">${title}</div>
+        </div>
+      </div>
+      <div class="popup-badge" style="color:${source.color};border-color:${source.color}20;background:${source.color}15;">
+        ${source.label}
+      </div>
+      <div class="popup-row">📋 Loại: <span>${info}</span></div>
+      ${operator ? `<div class="popup-row">🏷️ Thương hiệu: <span>${operator}</span></div>` : ''}
+      ${payment   ? `<div class="popup-row">💰 Thanh toán: <span>${payment}</span></div>` : ''}
+      ${props['check_date'] ? `<div class="popup-row">📅 Cập nhật: <span>${props['check_date']}</span></div>` : ''}
+      <div class="popup-coord">📍 ${centroid.lat.toFixed(6)}, ${centroid.lng.toFixed(6)}</div>
+    </div>`;
+}
+
+// =====================================================================
+//  LOAD GEOJSON
+// =====================================================================
+async function loadSourceData(source, progressStep) {
+  const res = await fetch(source.file);
+  const geo = await res.json();
+
+  const cluster = L.markerClusterGroup({
+    maxClusterRadius: 50,
+    iconCreateFunction: (cl) => {
+      const count = cl.getChildCount();
+      return L.divIcon({
+        html: `<div style="
+          width:38px;height:38px;
+          border-radius:50%;
+          background:${source.color}cc;
+          border:2px solid white;
+          color:white;
+          display:flex;align-items:center;justify-content:center;
+          font-size:12px;font-weight:700;
+          box-shadow:0 2px 8px rgba(0,0,0,.4);">
+          ${count}
+        </div>`,
+        className: '', iconSize: [38, 38], iconAnchor: [19, 19],
+      });
+    },
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+  });
+
+  const icon = makeIcon(source.icon, source.color);
+  const features = [];
+
+  geo.features.forEach(f => {
+    const props = f.properties || {};
+    const centroid = getCentroid(f.geometry);
+    if (!centroid) return;
+
+    const title = source.getTitle(props);
+    const info  = source.getInfo(props);
+
+    const marker = L.marker([centroid.lat, centroid.lng], { icon });
+
+    marker.bindPopup(buildPopup(source, props, centroid), {
+      maxWidth: 280,
+    });
+
+    marker.on('mouseover', function() {
+      document.getElementById('infoBar').textContent =
+        `${source.icon} ${title}  —  ${info}`;
+    });
+    marker.on('mouseout', function() {
+      document.getElementById('infoBar').textContent = '📍 Hover lên điểm để xem thông tin';
+    });
+
+    // For click-to-focus from list
+    const feat = { source, title, info, centroid, marker, props };
+    features.push(feat);
+    allFeatures.push(feat);
+
+    marker.on('click', () => {
+      highlightListItem(feat._listEl);
+    });
+
+    cluster.addLayer(marker);
+  });
+
+  layerState[source.id] = { cluster, features, on: true };
+  cluster.addTo(map);
+
+  // Update progress
+  const bar = document.getElementById('loadingBar');
+  const current = parseFloat(bar.style.width) || 0;
+  bar.style.width = (current + progressStep) + '%';
+
+  return features.length;
+}
+
+// =====================================================================
+//  PANEL: Layer cards
+// =====================================================================
+function buildLayerCards() {
+  const container = document.getElementById('layerCards');
+  DATA_SOURCES.forEach(src => {
+    const st = layerState[src.id];
+    const card = document.createElement('div');
+    card.className = 'layer-card on active';
+    card.id = 'layer-card-' + src.id;
+    card.innerHTML = `
+      <div class="layer-dot" style="background:${src.color}"></div>
+      <span class="layer-name">${src.icon} ${src.label}</span>
+      <span class="layer-count" id="cnt-${src.id}">${st.features.length}</span>
+      <div class="layer-toggle" id="toggle-${src.id}"></div>`;
+    card.addEventListener('click', () => toggleLayer(src.id));
+    container.appendChild(card);
+  });
+}
+
+function toggleLayer(id) {
+  const st = layerState[id];
+  const card = document.getElementById('layer-card-' + id);
+  if (st.on) {
+    map.removeLayer(st.cluster);
+    st.on = false;
+    card.classList.remove('on');
+  } else {
+    st.cluster.addTo(map);
+    st.on = true;
+    card.classList.add('on');
+  }
+  renderFeatureList();
+}
+
+function toggleAllLayers(enable) {
+  DATA_SOURCES.forEach(src => {
+    const st = layerState[src.id];
+    const card = document.getElementById('layer-card-' + src.id);
+    if (enable && !st.on) {
+      st.cluster.addTo(map); st.on = true; card.classList.add('on');
+    } else if (!enable && st.on) {
+      map.removeLayer(st.cluster); st.on = false; card.classList.remove('on');
+    }
+  });
+  renderFeatureList();
+}
+
+// =====================================================================
+//  PANEL: Basemap switcher
+// =====================================================================
+function buildBasemapButtons() {
+  const grid = document.getElementById('basemapGrid');
+  Object.keys(BASEMAPS).forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'basemap-btn' + (name === currentBasemap ? ' active' : '');
+    btn.textContent = name;
+    btn.addEventListener('click', () => {
+      if (name === currentBasemap) return;
+      map.removeLayer(BASEMAPS[currentBasemap]);
+      BASEMAPS[name].addTo(map);
+      currentBasemap = name;
+      grid.querySelectorAll('.basemap-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+    grid.appendChild(btn);
+  });
+}
+
+// =====================================================================
+//  PANEL: Feature list
+// =====================================================================
+function renderFeatureList(query = '') {
+  const list = document.getElementById('featureList');
+  const q = query.toLowerCase().trim();
+
+  const visible = allFeatures.filter(f => {
+    if (!layerState[f.source.id]?.on) return false;
+    if (q && !f.title.toLowerCase().includes(q) && !f.info.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  document.getElementById('featureCount').textContent = visible.length;
+  updateTopbarStats();
+
+  if (!visible.length) {
+    list.innerHTML = `<div class="no-results">🔍 Không tìm thấy địa điểm nào</div>`;
+    return;
+  }
+
+  // Limit render to 200 for performance
+  const toRender = visible.slice(0, 200);
+  const frag = document.createDocumentFragment();
+
+  toRender.forEach(feat => {
+    const el = document.createElement('div');
+    el.className = 'feature-item';
+    el.innerHTML = `
+      <span class="feature-icon">${feat.source.icon}</span>
+      <div>
+        <div class="feature-name">${feat.title}</div>
+        <div class="feature-meta" style="color:${feat.source.color}">${feat.info}</div>
+      </div>`;
+    el.addEventListener('click', () => focusFeature(feat, el));
+    feat._listEl = el;
+    frag.appendChild(el);
+  });
+
+  list.innerHTML = '';
+  if (visible.length > 200) {
+    const note = document.createElement('div');
+    note.style.cssText = 'padding:8px 12px;font-size:11px;color:var(--text-muted);text-align:center;';
+    note.textContent = `Hiển thị 200/${visible.length} kết quả. Dùng tìm kiếm để lọc.`;
+    list.appendChild(note);
+  }
+  list.appendChild(frag);
+}
+
+function focusFeature(feat, el) {
+  map.setView([feat.centroid.lat, feat.centroid.lng], 17, { animate: true });
+  feat.marker.openPopup();
+  highlightListItem(el);
+}
+
+function highlightListItem(el) {
+  if (!el) return;
+  if (activeItemEl) activeItemEl.classList.remove('active');
+  activeItemEl = el;
+  el.classList.add('active');
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// =====================================================================
+//  Top stats
+// =====================================================================
+function updateTopbarStats() {
+  const chips = document.getElementById('statChips');
+  chips.innerHTML = '';
+  DATA_SOURCES.forEach(src => {
+    const st = layerState[src.id];
+    if (!st || !st.on) return;
+    const chip = document.createElement('div');
+    chip.className = 'stat-chip';
+    chip.style.cssText = `color:${src.color};border-color:${src.color}40;background:${src.color}15;`;
+    chip.innerHTML = `<div class="dot" style="background:${src.color}"></div>${src.label}: <strong>${st.features.length}</strong>`;
+    chips.appendChild(chip);
+  });
+}
+
+// =====================================================================
+//  Panel toggle
+// =====================================================================
+function togglePanel() {
+  panelOpen = !panelOpen;
+  document.getElementById('panel').classList.toggle('collapsed', !panelOpen);
+  setTimeout(() => map.invalidateSize(), 310);
+}
+
+// =====================================================================
+//  Search
+// =====================================================================
+document.getElementById('searchInput').addEventListener('input', function() {
+  renderFeatureList(this.value);
+});
+
+// =====================================================================
+//  INIT
+// =====================================================================
+(async function init() {
+  const step = 100 / DATA_SOURCES.length;
+  const loadingText = document.getElementById('loadingText');
+
+  for (let i = 0; i < DATA_SOURCES.length; i++) {
+    const src = DATA_SOURCES[i];
+    loadingText.textContent = `Đang tải: ${src.label}...`;
+    try {
+      await loadSourceData(src, step);
+    } catch (e) {
+      console.warn(`Lỗi tải ${src.label}:`, e);
+    }
+  }
+
+  // Build UI
+  buildLayerCards();
+  buildBasemapButtons();
+  renderFeatureList();
+
+  // Hide loading
+  const overlay = document.getElementById('loadingOverlay');
+  overlay.classList.add('done');
+  setTimeout(() => { overlay.style.display = 'none'; }, 450);
+})();
+</script>
+</body>
+</html>
