@@ -9,9 +9,10 @@
   </head>
 
   <body>
+    <script src="js/auth-guard.js"></script>
     <!-- HEADER -->
     <div class="header">
-      <h2 id="headerTitle">🥤 NƯỚC ÉP GIẢI PHÓNG</h2>
+      <h2 id="headerTitle">Cây bán nước tự động</h2>
 
       <div class="search-box">
         <input id="searchInput" placeholder="Tìm máy..." autocomplete="off" />
@@ -25,7 +26,7 @@
     <div class="container">
       <!-- LEFT -->
       <div class="left">
-        <h3>Chọn đồ uống...</h3>
+        <h3>Mời quý khách chọn đồ uống</h3>
         <div id="productList" class="products"></div>
       </div>
 
@@ -41,6 +42,11 @@
           <button onclick="clearCart()">Hủy</button>
           <button class="pay" onclick="checkout()">Tính tiền</button>
         </div>
+      </div>
+      <!-- HISTORY -->
+      <div class="history-panel">
+        <h3>🕐 Lịch sử mua hàng</h3>
+        <div id="historyList"><p>Chưa có lịch sử</p></div>
       </div>
     </div>
 

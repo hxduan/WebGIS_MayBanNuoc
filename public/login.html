@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đăng nhập - Máy bán nước</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f6f8fc;
+        --surface: #ffffff;
+        --border: #e0e6ef;
+        --accent: #1565c0;
+        --accent2: #1976d2;
+        --text: #1a1a2e;
+        --muted: #888;
+        --error: #e53935;
+        --success: #2e7d32;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Segoe UI", Arial, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse at 20% 20%,
+            rgba(21, 101, 192, 0.06) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse at 80% 80%,
+            rgba(25, 118, 210, 0.06) 0%,
+            transparent 60%
+          );
+        pointer-events: none;
+      }
+
+      .blob {
+        display: none;
+      }
+
+      .card {
+        position: relative;
+        background: var(--surface);
+        border: 1.5px solid var(--border);
+        border-radius: 20px;
+        padding: 48px 44px;
+        width: 420px;
+        box-shadow:
+          0 8px 40px rgba(21, 101, 192, 0.08),
+          0 2px 12px rgba(0, 0, 0, 0.06);
+        animation: cardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes cardIn {
+        from {
+          opacity: 0;
+          transform: translateY(24px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .logo {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        margin-bottom: 28px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .logo::before {
+        content: "";
+        width: 28px;
+        height: 2px;
+        background: var(--accent);
+        display: inline-block;
+      }
+
+      h1 {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 6px;
+      }
+
+      .subtitle {
+        font-size: 14px;
+        color: var(--muted);
+        margin-bottom: 32px;
+      }
+
+      .role-switch {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 28px;
+        background: var(--bg);
+        border-radius: 10px;
+        padding: 5px;
+        border: 1.5px solid var(--border);
+      }
+
+      .role-btn {
+        padding: 10px;
+        border: none;
+        border-radius: 7px;
+        background: transparent;
+        color: var(--muted);
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .role-btn.active {
+        background: white;
+        color: var(--accent);
+        box-shadow: 0 2px 8px rgba(21, 101, 192, 0.12);
+        border: 1px solid var(--border);
+      }
+
+      .role-btn.active.customer {
+        color: #1976d2;
+      }
+
+      .field {
+        margin-bottom: 18px;
+      }
+
+      label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+
+      input {
+        width: 100%;
+        background: var(--bg);
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 16px;
+        color: var(--text);
+        font-family: inherit;
+        font-size: 15px;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+        outline: none;
+      }
+
+      input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.08);
+        background: white;
+      }
+
+      input.error-input {
+        border-color: var(--error);
+        box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.08);
+      }
+
+      .error-msg {
+        display: none;
+        background: rgba(229, 57, 53, 0.06);
+        border: 1px solid rgba(229, 57, 53, 0.25);
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: var(--error);
+        margin-bottom: 16px;
+        animation: shake 0.3s ease;
+      }
+
+      .error-msg.show {
+        display: block;
+      }
+
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-6px);
+        }
+        75% {
+          transform: translateX(6px);
+        }
+      }
+
+      .btn-login {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 10px;
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-top: 8px;
+        letter-spacing: 0.3px;
+      }
+
+      .btn-login:active {
+        transform: scale(0.98);
+      }
+
+      .btn-login.admin-btn {
+        background: #1565c0;
+        color: white;
+        box-shadow: 0 4px 16px rgba(21, 101, 192, 0.25);
+      }
+
+      .btn-login.admin-btn:hover {
+        background: #0d47a1;
+      }
+
+      .btn-login.customer-btn {
+        background: #1976d2;
+        color: white;
+        box-shadow: 0 4px 16px rgba(25, 118, 210, 0.25);
+      }
+
+      .btn-login.customer-btn:hover {
+        background: #1565c0;
+      }
+
+      .btn-login:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+        vertical-align: middle;
+        margin-right: 8px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .hint {
+        text-align: center;
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 24px;
+      }
+
+      .hint span {
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .redirect-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: var(--bg);
+        z-index: 100;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+      }
+
+      .redirect-overlay.show {
+        display: flex;
+      }
+
+      .redirect-icon {
+        font-size: 48px;
+        animation: popIn 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .redirect-text {
+        color: var(--accent);
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 1px;
+      }
+
+      .redirect-bar {
+        width: 200px;
+        height: 3px;
+        background: var(--border);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .redirect-bar-fill {
+        height: 100%;
+        background: var(--accent);
+        width: 0%;
+        animation: fillBar 1.5s ease forwards;
+      }
+
+      @keyframes fillBar {
+        to {
+          width: 100%;
+        }
+      }
+      @keyframes popIn {
+        from {
+          transform: scale(0.5);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="blob blob1"></div>
+    <div class="blob blob2"></div>
+
+    <div class="card">
+      <div class="logo">Quản lý cây bán nước</div>
+      <h1>Xin chào</h1>
+      <p class="subtitle">Đăng nhập để tiếp tục</p>
+
+      <!-- Role switch -->
+      <div class="role-switch">
+        <button class="role-btn admin active" onclick="switchRole('admin')">
+          🛡️ Quản trị viên
+        </button>
+        <button class="role-btn customer" onclick="switchRole('customer')">
+          Trang mua hàng
+        </button>
+      </div>
+
+      <!-- Error -->
+      <div id="errorMsg" class="error-msg">⚠️ Sai tài khoản hoặc mật khẩu</div>
+
+      <!-- Form -->
+      <div class="field">
+        <label>Tên đăng nhập</label>
+        <input
+          id="username"
+          type="text"
+          placeholder="Nhập tên đăng nhập..."
+          autocomplete="username"
+        />
+      </div>
+
+      <div class="field">
+        <label>Mật khẩu</label>
+        <input
+          id="password"
+          type="password"
+          placeholder="Nhập mật khẩu..."
+          autocomplete="current-password"
+        />
+      </div>
+
+      <button id="loginBtn" class="btn-login admin-btn" onclick="doLogin()">
+        Đăng nhập
+      </button>
+
+      <div class="hint">Không có tài khoản? Liên hệ <span>Admin</span></div>
+    </div>
+
+    <!-- Success overlay -->
+    <div class="redirect-overlay" id="redirectOverlay">
+      <div class="redirect-icon" id="redirectIcon">✅</div>
+      <div class="redirect-text" id="redirectText">Đăng nhập thành công</div>
+      <div class="redirect-bar"><div class="redirect-bar-fill"></div></div>
+    </div>
+
+    <script>
+      let currentRole = "admin";
+
+      function switchRole(role) {
+        currentRole = role;
+
+        document
+          .querySelectorAll(".role-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document.querySelector(`.role-btn.${role}`).classList.add("active");
+
+        const btn = document.getElementById("loginBtn");
+        if (role === "admin") {
+          btn.className = "btn-login admin-btn";
+          btn.textContent = "Đăng nhập";
+        } else {
+          btn.className = "btn-login customer-btn";
+          btn.textContent = "Đăng nhập";
+        }
+
+        // Clear errors
+        hideError();
+      }
+
+      function showError(msg) {
+        const el = document.getElementById("errorMsg");
+        el.textContent = "⚠️ " + msg;
+        el.classList.add("show");
+        document.getElementById("username").classList.add("error-input");
+        document.getElementById("password").classList.add("error-input");
+      }
+
+      function hideError() {
+        document.getElementById("errorMsg").classList.remove("show");
+        document.getElementById("username").classList.remove("error-input");
+        document.getElementById("password").classList.remove("error-input");
+      }
+
+      async function doLogin() {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+        const btn = document.getElementById("loginBtn");
+
+        if (!username || !password) {
+          showError("Vui lòng nhập đầy đủ thông tin");
+          return;
+        }
+
+        hideError();
+
+        // Loading state
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>Đang đăng nhập...';
+
+        try {
+          const res = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password, role: currentRole }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            showError(data.error || "Sai tài khoản hoặc mật khẩu");
+            btn.disabled = false;
+            btn.textContent = "Đăng nhập";
+            return;
+          }
+
+          // Lưu token + role vào localStorage
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("role", data.role);
+          localStorage.setItem("username", data.username);
+
+          // Show success
+          const overlay = document.getElementById("redirectOverlay");
+          const icon = document.getElementById("redirectIcon");
+          const text = document.getElementById("redirectText");
+
+          if (data.role === "admin") {
+            icon.textContent = "🛡️";
+            text.textContent = "Chào mừng Admin " + data.username;
+          } else {
+            icon.textContent = "🥤";
+            text.textContent = "Chào mừng " + data.username;
+          }
+
+          overlay.classList.add("show");
+
+          // Redirect sau 1.5s
+          setTimeout(() => {
+            if (data.role === "admin") {
+              window.location.href = "/index.html";
+            } else {
+              window.location.href = "/buy.html";
+            }
+          }, 1600);
+        } catch (err) {
+          showError("Lỗi kết nối server");
+          btn.disabled = false;
+          btn.textContent = "Đăng nhập";
+        }
+      }
+
+      // Enter key
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") doLogin();
+      });
+
+      // Nếu đã đăng nhập rồi thì redirect luôn
+      const existingToken = localStorage.getItem("token");
+      const existingRole = localStorage.getItem("role");
+      if (existingToken && existingRole) {
+        if (existingRole === "admin") window.location.href = "/index.html";
+        else window.location.href = "/buy.html";
+      }
+    </script>
+  </body>
+</html>

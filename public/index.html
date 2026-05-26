@@ -21,6 +21,7 @@
   </head>
 
   <body>
+    <script src="js/auth-guard.js"></script>
     <button id="toggleSidebarBtn" onclick="toggleLeftSidebar()">⬅</button>
     <button id="toggleRightSidebarBtn" onclick="toggleRightSidebar()">➡</button>
 
@@ -38,15 +39,37 @@
         <button>Bản đồ nhiệt</button>
 
         <div class="dropdown-content">
-          <div onclick="toggleHeatMap('day')">📅 Hôm nay</div>
-          <div onclick="toggleHeatMap('month')">📅 Tháng</div>
-          <div onclick="toggleHeatMap('year')">📆 Năm</div>
+          <div onclick="toggleHeatMap('day')">Hôm nay</div>
+          <div onclick="toggleHeatMap('month')">Tháng</div>
+          <div onclick="toggleHeatMap('year')">Năm</div>
         </div>
       </div>
 
       <div class="dropdown">
         <button>Phân loại</button>
         <div class="dropdown-content">
+          <div style="padding: 6px 10px; display: flex; gap: 6px">
+            <button
+              onclick="
+                document
+                  .querySelectorAll('#categoryFilter input')
+                  .forEach((c) => (c.checked = true));
+                filterCategoryMulti();
+              "
+            >
+              Tích tất cả
+            </button>
+            <button
+              onclick="
+                document
+                  .querySelectorAll('#categoryFilter input')
+                  .forEach((c) => (c.checked = false));
+                filterCategoryMulti();
+              "
+            >
+              Bỏ tích
+            </button>
+          </div>
           <div id="categoryFilter" style="padding: 10px">
             <label><input type="checkbox" value="cafe" checked /> Cafe</label
             ><br />
@@ -70,19 +93,19 @@
           <!-- NÚT MỚI -->
           <div style="padding: 8px; border-bottom: 1px solid #eee">
             <button onclick="checkAllDistrict()" style="width: 100%">
-              ✅ Tích tất cả
+              Tích tất cả
             </button>
-
-            <button
-              onclick="uncheckAllDistrict()"
-              style="width: 100%; margin-top: 5px"
-            >
-              ❌ Bỏ tích tất cả
-            </button>
+            <button onclick="uncheckAllDistrict()">Bỏ tích tất cả</button>
           </div>
+          <button
+            onclick="uncheckAllDistrict()"
+            style="width: 100%; margin-top: 5px"
+          >
+            Bỏ tích tất cả
+          </button>
           <div id="districtFilter" style="padding: 10px"></div>
           <button onclick="toggleDistrictLayer()" class="btn-toggle-district">
-            🗺️ Bật/Tắt phân vùng
+            Bật/Tắt phân vùng
           </button>
         </div>
       </div>
@@ -90,18 +113,9 @@
       <div class="dropdown">
         <button>Máy bán chạy</button>
         <div class="dropdown-content">
-          <div onclick="filterHot('week')">7 ngày</div>
-          <div onclick="filterHot('month')">30 ngày</div>
-          <div onclick="filterHot('year')">1 năm</div>
-        </div>
-      </div>
-      <div class="dropdown">
-        <button>Gợi ý đặt máy</button>
-        <div class="dropdown-content">
-          <button onclick="loadSuggestionsByType('cafe')">Cafe</button>
-          <button onclick="loadSuggestionsByType('trasua')">Trà sữa</button>
-          <button onclick="loadSuggestionsByType('nuoc_ep')">Nước ép</button>
-          <button onclick="loadSuggestionsByType('giaikhat')">Giải khát</button>
+          <div onclick="filterHot('week')">Tuần</div>
+          <div onclick="filterHot('month')">Tháng</div>
+          <div onclick="filterHot('year')">năm</div>
         </div>
       </div>
 
@@ -162,8 +176,10 @@
       <!-- SWITCH TABS -->
       <div class="sidebar-tabs">
         <button onclick="switchSidebar('overview')">Thống kê</button>
+
         <button onclick="switchSidebar('nav')">Số lượng trong máy</button>
         <button onclick="switchSidebar('detail')">Máy đang chọn</button>
+
         <!-- 📌📍 📊-->
       </div>
 
@@ -225,8 +241,8 @@
           </div>
 
           <div class="stat-box">
-            <p>Máy lỗi</p>
-            <h3 id="errorMachines">0</h3>
+            <p>Offline</p>
+            <h3 id="offlineMachines" style="color: #757575">0</h3>
           </div>
         </div>
         <h4>Máy có sản phẩm hết hàng</h4>
@@ -255,10 +271,19 @@
           <div class="overview-info">
             <h2>
               <span id="machineName"></span>
-              <button onclick="editMachine()">✏️</button>
+              <button onclick="editMachine()">Sửa tên</button>
             </h2>
-            <input type="file" id="machineImageInput" />
-            <button onclick="changeImage()">📷 Đổi ảnh</button>
+            <input
+              type="file"
+              id="machineImageInput"
+              onchange="changeImage()"
+              accept="image/*"
+            />
+            <button
+              onclick="document.getElementById('machineImageInput').click()"
+            >
+              Đổi ảnh
+            </button>
             <p id="machineId"></p>
             <p id="machineStatus"></p>
             <p id="machineType"></p>
@@ -270,8 +295,16 @@
         <!-- PRODUCT / CHART / HISTORY TABS -->
         <div class="tabs">
           <button onclick="openTab('products')">Sản phẩm</button>
-          <button onclick="openTab('report')">Báo cáo</button>
-          <button onclick="openTab('chart')">Biểu đồ</button>
+          <button onclick="openTab('report')">Báo cáo thủ công</button>
+          <button
+            onclick="
+              openTab('chart');
+              loadChart('7days');
+              loadCompare('month');
+            "
+          >
+            Biểu đồ
+          </button>
           <button onclick="openTab('history')">Lịch sử</button>
         </div>
 
@@ -283,6 +316,32 @@
         </div>
 
         <button onclick="addProduct()" class="add-btn">➕ Thêm sản phẩm</button>
+        <!-- POPUP THÊM SẢN PHẨM -->
+        <div
+          id="addProductPopup"
+          class="add-machine-popup hidden"
+          style="width: 320px"
+        >
+          <h3>➕ Thêm sản phẩm</h3>
+          <input id="newProductName" placeholder="Tên sản phẩm" />
+          <input
+            id="newProductPrice"
+            placeholder="Giá (đ)"
+            type="number"
+            min="0"
+          />
+          <input
+            id="newProductStock"
+            placeholder="Số lượng (tối đa 50)"
+            type="number"
+            min="0"
+            max="50"
+          />
+          <div class="popup-actions">
+            <button onclick="saveNewProduct()">Lưu</button>
+            <button onclick="closeAddProductPopup()">Hủy</button>
+          </div>
+        </div>
 
         <!-- PRODUCT TAB -->
         <div id="products" class="tab-content active">
@@ -291,37 +350,168 @@
 
         <!-- CHART TAB -->
         <div id="chart" class="tab-content">
-          <!-- SCROLL -->
           <div class="chart-scroll">
-            <!-- FILTER -->
-            <div style="margin-bottom: 10px">
-              <div style="margin-bottom: 10px">
-                <h3>Doanh thu</h3>
-                <button onclick="loadCompare('day')">Ngày</button>
-                <button onclick="loadCompare('month')">Tháng</button>
-                <button onclick="loadCompare('year')">Năm</button>
-                <canvas id="compareChart"></canvas>
+            <!-- FILTER DOANH THU SO SÁNH -->
+            <div class="chart-section">
+              <h3 class="chart-title">Doanh thu so sánh</h3>
+              <div class="chart-filter-bar">
+                <button
+                  class="chart-btn active"
+                  id="btnDay"
+                  onclick="switchChartMode('day')"
+                >
+                  Ngày
+                </button>
+                <button
+                  class="chart-btn"
+                  id="btnMonth"
+                  onclick="switchChartMode('month')"
+                >
+                  Tháng
+                </button>
+                <button
+                  class="chart-btn"
+                  id="btnYear"
+                  onclick="switchChartMode('year')"
+                >
+                  Năm
+                </button>
               </div>
+              <!-- Date picker — chỉ hiện khi chọn Ngày -->
+              <div id="datePicker" style="display: none; margin: 6px 0">
+                <input
+                  type="date"
+                  id="selectedDate"
+                  onchange="loadChartByDate()"
+                  style="
+                    padding: 5px 10px;
+                    border-radius: 8px;
+                    border: 1px solid #ddd;
+                    font-size: 12px;
+                    width: 100%;
+                  "
+                />
+              </div>
+              <canvas id="compareChart"></canvas>
+              <p
+                id="compareChart-empty"
+                style="
+                  display: none;
+                  text-align: center;
+                  color: #aaa;
+                  padding: 20px;
+                "
+              >
+                Chưa có dữ liệu
+              </p>
+            </div>
 
-              <!-- BIỂU ĐỒ -->
-
-              <h3>Sản phẩm bán chạy</h3>
+            <!-- SẢN PHẨM BÁN CHẠY -->
+            <div class="chart-section">
+              <h3 class="chart-title">Sản phẩm bán chạy</h3>
               <canvas id="topProductChart"></canvas>
+              <p
+                id="topProductChart-empty"
+                style="
+                  display: none;
+                  text-align: center;
+                  color: #aaa;
+                  padding: 20px;
+                "
+              >
+                Chưa có dữ liệu
+              </p>
+            </div>
+
+            <!-- DOANH THU THEO NGÀY -->
+            <div class="chart-section">
+              <h3 class="chart-title">Doanh thu chi tiết</h3>
               <canvas id="revenueChart"></canvas>
+              <p
+                id="revenueChart-empty"
+                style="
+                  display: none;
+                  text-align: center;
+                  color: #aaa;
+                  padding: 20px;
+                "
+              >
+                Chưa có dữ liệu
+              </p>
+            </div>
+
+            <!-- SẢN PHẨM -->
+            <div class="chart-section">
+              <h3 class="chart-title">Sản lượng theo sản phẩm</h3>
               <canvas id="productChart"></canvas>
+              <p
+                id="productChart-empty"
+                style="
+                  display: none;
+                  text-align: center;
+                  color: #aaa;
+                  padding: 20px;
+                "
+              >
+                Chưa có dữ liệu
+              </p>
             </div>
           </div>
         </div>
 
         <!-- HISTORY TAB -->
         <div id="history" class="tab-content">
-          <!-- SCROLL Ở ĐÂY -->
           <div class="history-scroll">
-            <h4>Lần tiếp hàng gần nhất:</h4>
-            <p id="latestRefill">—</p>
+            <!-- Lần tiếp hàng gần nhất -->
+            <div class="history-card">
+              <h4 class="history-label">📦 Tiếp hàng gần nhất</h4>
+              <p id="latestRefill" class="history-latest">—</p>
+            </div>
 
-            <h4>Lịch sử tiếp hàng:</h4>
-            <div id="refillHistory"></div>
+            <!-- Tất cả lịch sử -->
+            <div class="history-card">
+              <h4 class="history-label">🕐 Tất cả thao tác</h4>
+              <!-- Filter -->
+              <div class="history-filter">
+                <button
+                  class="history-filter-btn active"
+                  onclick="filterHistory('all', this)"
+                >
+                  Tất cả
+                </button>
+                <button
+                  class="history-filter-btn"
+                  onclick="filterHistory('refill', this)"
+                >
+                  📦 Tiếp hàng
+                </button>
+                <button
+                  class="history-filter-btn"
+                  onclick="filterHistory('error', this)"
+                >
+                  ⚠️ Lỗi
+                </button>
+                <button
+                  class="history-filter-btn"
+                  onclick="filterHistory('fix', this)"
+                >
+                  🔧 Sửa
+                </button>
+                <button
+                  class="history-filter-btn"
+                  onclick="filterHistory('report', this)"
+                >
+                  📋 Báo cáo
+                </button>
+                <button
+                  class="history-filter-btn"
+                  onclick="filterHistory('sale', this)"
+                >
+                  🛒 Mua hàng
+                </button>
+              </div>
+              <div id="allHistoryList"></div>
+            </div>
           </div>
         </div>
         <!-- báo cáo -->
@@ -342,14 +532,12 @@
     </div>
 
     <!-- FLOAT BUTTONS -->
-    <div class="locate-btn" onclick="getLocation()">📍</div>
-    <!-- <div class="route-off-btn" onclick="closeRoute()">🧭</div>
-<div class="nearby-off-btn" onclick="resetNearby()">❌</div> -->
-    <!-- 🧭 bật chỉ đường -->
-    <div class="route-btn" onclick="getRoute()">🧭</div>
-
-    <!-- ❌ tắt chỉ đường -->
-    <div class="route-close-btn" onclick="closeRoute()">❌</div>
+    <div class="locate-btn" onclick="getLocation()">Định vị</div>
+    <div class="route-btn" onclick="getRoute()">Chỉ Đường</div>
+    <div class="route-close-btn" onclick="closeRoute()">Tắt chỉ đường</div>
+    <div id="suggestBtn" class="suggest-btn" onclick="toggleSuggestLocations()">
+      💡 Gợi ý đặt máy
+    </div>
 
     <div id="addMachinePopup" class="add-machine-popup hidden">
       <h3>➕ Thêm máy mới</h3>
@@ -374,6 +562,18 @@
         <button onclick="cancelAddMachine()">Hủy</button>
       </div>
     </div>
+
+    <script src="js/auth-guard.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/district.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/machine.js"></script>
+    <script src="js/product.js"></script>
+    <script src="js/chart.js"></script>
+    <script src="js/heatmap.js"></script>
+    <script src="js/stats.js"></script>
     <script src="js/app.js"></script>
   </body>
 </html>

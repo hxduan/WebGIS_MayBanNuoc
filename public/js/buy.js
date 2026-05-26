@@ -10,6 +10,7 @@ async function init() {
   try {
     const res = await fetch(`${HOST}/api/machines`);
     allMachines = await res.json();
+    renderHistory(); // ← thêm dòng này
   } catch (err) {
     alert("Lỗi load máy!");
   }
@@ -54,7 +55,13 @@ function handleSearch() {
 function selectMachine(id, name) {
   document.getElementById("searchInput").value = name;
   document.getElementById("searchList").style.display = "none";
-  document.getElementById("headerTitle").innerText = "🥤 " + name;
+
+  const machine = allMachines.find((m) => m.id === id);
+  const img = machine?.image ? HOST + machine.image : "";
+
+  document.getElementById("headerTitle").innerHTML = img
+    ? `<img src="${img}" style="width:48px;height:48px;object-fit:cover;border-radius:10px;margin-right:10px;vertical-align:middle;"> ${name}`
+    : name;
 
   currentMachineId = id;
   loadProducts(id);
@@ -78,7 +85,7 @@ function renderProducts() {
     <div class="product">
       <button class="add-btn"
         ${p.stock <= 0 ? "disabled" : ""}
-        onclick="addToCart(${p.id}, \`${p.name}\`, ${p.price})">
+        onclick="addToCart(${p.id}, \`${p.name}\`, ${p.price}, \`${p.image || ""}\`)">
         +
       </button>
 
@@ -96,11 +103,10 @@ function renderProducts() {
 }
 
 // CART
-function addToCart(id, name, price) {
+function addToCart(id, name, price, image) {
   const item = cart.find((i) => i.id === id);
   if (item) item.qty++;
-  else cart.push({ id, name, price, qty: 1 });
-
+  else cart.push({ id, name, price, image, qty: 1 });
   renderCart();
 }
 
@@ -116,17 +122,15 @@ function renderCart() {
   box.innerHTML = cart
     .map(
       (i) => `
-    <div class="cart-item">
-      <span>${i.name}</span>
-
-      <input type="number" min="1" value="${i.qty}"
-        onchange="changeQty(${i.id}, this.value)">
-
-      <span>${(i.price * i.qty).toLocaleString()}đ</span>
-
-      <button onclick="removeItem(${i.id})">❌</button>
-    </div>
-  `,
+  <div class="cart-item">
+    <img src="${i.image ? "http://localhost:3000" + i.image : "https://via.placeholder.com/40"}" />
+    <span>${i.name}</span>
+    <input type="number" min="1" value="${i.qty}"
+      onchange="changeQty(${i.id}, this.value)">
+    <span>${(i.price * i.qty).toLocaleString()}đ</span>
+    <button onclick="removeItem(${i.id})">❌</button>
+  </div>
+`,
     )
     .join("");
 
@@ -174,6 +178,7 @@ async function checkout() {
     if (!res.ok) throw new Error(result.error);
 
     alert("✅ Thanh toán thành công");
+    saveHistory(cart); // ← thêm dòng này
 
     cart = [];
     renderCart();
@@ -189,5 +194,42 @@ document.addEventListener("click", (e) => {
     document.getElementById("searchList").style.display = "none";
   }
 });
+function saveHistory(items) {
+  const history = JSON.parse(localStorage.getItem("buyHistory") || "[]");
+  const machine = allMachines.find((m) => m.id === currentMachineId);
+  history.unshift({
+    time: new Date().toLocaleString("vi-VN"),
+    machine: machine?.name || "Không rõ",
+    items: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
+    total: items.reduce((s, i) => s + i.price * i.qty, 0),
+  });
+  if (history.length > 50) history.pop();
+  localStorage.setItem("buyHistory", JSON.stringify(history));
+  renderHistory();
+}
 
+function renderHistory() {
+  const history = JSON.parse(localStorage.getItem("buyHistory") || "[]");
+  const box = document.getElementById("historyList");
+  if (history.length === 0) {
+    box.innerHTML = "<p>Chưa có lịch sử</p>";
+    return;
+  }
+  box.innerHTML = history
+    .map(
+      (r) => `
+    <div class="history-item">
+      <div class="history-meta">
+        <span>🕐 ${r.time}</span>
+        <span>📍 ${r.machine}</span>
+      </div>
+      <div class="history-products">
+        ${r.items.map((i) => `<span>${i.name} x${i.qty}</span>`).join("")}
+      </div>
+      <div class="history-total">${r.total.toLocaleString()}đ</div>
+    </div>
+  `,
+    )
+    .join("");
+}
 init();
